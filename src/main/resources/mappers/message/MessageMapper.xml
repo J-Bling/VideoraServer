@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.message.MessageDao">
+
+    <select id="findMessageForCache" resultType="com.server.message.entity.Message">
+        select * from message where room=#{root} order by created desc limit #{offset},#{limit}
+    </select>
+
+    <select id="findMessageByLastCreated" resultType="com.server.message.entity.Message">
+        select * from message where room=#{room} and created &lt; #{lastCreated} order by created desc limit #{limit}
+    </select>
+
+    <insert id="batchInsertMessage" parameterType="com.server.message.entity.Message">
+        insert into message (room,sender_id,target_id,message,created) values
+        <foreach collection="messages" item="message" separator=",">
+            (#{message.room},#{message.sender_id},#{message.target_id},#{message.message},#{message.created})
+        </foreach>
+    </insert>
+</mapper>

@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.video.VideoDao">
+    <insert id="insertVideo" parameterType="com.server.entity.video.Video" useGeneratedKeys="true" keyProperty="id">
+        insert into video (title,description,author,category,file_size,duration,width,
+        height,format,cover_url,review_status,review_fail_reason,clips_count) values
+        (#{title},#{description},#{author},#{category},#{file_size},#{duration},#{width},
+        #{height},#{format},#{cover_url},#{review_status},#{review_fail_reason},#{clips_count})
+    </insert>
+
+    <select id="findVideoClipCount" resultType="java.lang.Integer">
+        select clips_count from video where id=#{videoId}
+    </select>
+
+    <update id="updateReviewStatus">
+        update video set review_status=#{stats} where id=#{videoId}
+    </update>
+
+    <resultMap id="videoDataResponseMap" type="com.server.dto.response.video.VideoDataResponse">
+        <id property="id" column="video_id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="category" column="category"/>
+        <result property="duration" column="duration"/>
+        <result property="width" column="width"/>
+        <result property="height" column="height"/>
+        <result property="format" column="format"/>
+        <result property="cover_url" column="cover_url"/>
+        <result property="clips_count" column="clips_count"/>
+        <result property="created" column="created"/>
+        <result property="updated" column="updated"/>
+        <result property="authorId" column="author"/>
+
+        <association property="videoStats" javaType="com.server.entity.video.VideoStats">
+            <id property="video_id" column="vs_video_id"/>
+            <result property="view_count" column="view_count"/>
+            <result property="like_count" column="like_count"/>
+            <result property="coin_count" column="coin_count"/>
+            <result property="favorite_count" column="favorite_count"/>
+            <result property="share_count" column="share_count"/>
+            <result property="barrage_count" column="barrage_count"/>
+        </association>
+
+        <association property="author" javaType="com.server.dto.response.user.UserResponse">
+            <id property="id" column="user_id"/>
+            <result property="nickname" column="nickname"/>
+            <result property="gender" column="gender"/>
+            <result property="avatar_url" column="avatar_url"/>
+            <result property="description" column="user_description"/>
+            <association property="userRelation" javaType="com.server.entity.user.UserRelation">
+                <id property="id" column="ur_id"/>
+                <result property="user_id" column="ur_user_id"/>
+                <result property="target_id" column="ur_target_id"/>
+                <result property="relation_type" column="ur_relation_type"/>
+            </association>
+            <association property="userStats" javaType="com.server.entity.user.UserStats">
+                <id property="user_id" column="us_user_id"/>
+                <result property="video_count" column="us_video_count"/>
+                <result property="like_count" column="us_like_count"/>
+                <result property="following_count" column="us_following_count"/>
+                <result property="follower_count" column="us_follower_count"/>
+                <result property="coin_balance" column="us_coin_balance"/>
+                <result property="favorite_count" column="us_favorite_count"/>
+            </association>
+        </association>
+
+        <association property="videoRecordForUser" javaType="com.server.dto.response.video.record.VideoRecordForUser">
+            <result property="hadCoin" column="had_coin"/>
+            <result property="hadFavorites" column="had_favorites"/>
+            <result property="hadLike" column="had_like"/>
+        </association>
+    </resultMap>
+
+
+    <select id="findVideoData" resultMap="videoDataResponseMap">
+        SELECT
+        v.id AS video_id,
+        v.*,
+        vs.video_id AS vs_video_id,
+        vs.*,
+        u.id AS user_id,
+        u.nickname,
+        u.gender,
+        u.avatar_url,
+        u.description AS user_description,
+        <choose>
+            <when test="userId != null">
+                MAX(CASE WHEN cr.video_id IS NOT NULL THEN 1 ELSE 0 END) AS had_coin,
+                MAX(CASE WHEN fr.video_id IS NOT NULL THEN 1 ELSE 0 END) AS had_favorites,
+                MAX(CASE WHEN lr.video_id IS NOT NULL THEN 1 ELSE 0 END) AS had_like,
+                ur.id AS ur_id,
+                ur.user_id AS ur_user_id,
+                ur.target_id AS ur_target_id,
+                ur.relation_type AS ur_relation_type,
+                us.user_id AS us_user_id,
+                us.video_count AS us_video_count,
+                us.like_count AS us_like_count,
+                us.following_count AS us_following_count,
+                us.follower_count AS us_follower_count,
+                us.coin_balance AS us_coin_balance,
+                us.favorite_count AS us_favorite_count
+            </when>
+            <otherwise>
+                NULL AS had_coin,
+                NULL AS had_favorites,
+                NULL AS had_like,
+                NULL AS ur_id,
+                NULL AS ur_user_id,
+                NULL AS ur_target_id,
+                NULL AS ur_relation_type
+            </otherwise>
+        </choose>
+        FROM video v
+        JOIN video_stats vs ON v.id = vs.video_id
+        JOIN user u ON v.author = u.id
+        <if test="userId != null">
+            LEFT JOIN coin_record cr ON v.id = cr.video_id AND cr.user_id = #{userId}
+            LEFT JOIN favorites_record fr ON v.id = fr.video_id AND fr.user_id = #{userId}
+            LEFT JOIN like_record lr ON v.id = lr.video_id AND lr.user_id = #{userId}
+            LEFT JOIN user_relation ur ON ur.user_id =#{userId} AND ur.target_id = v.author
+            LEFT JOIN user_stats us ON us.user_id=v.author
+        </if>
+        WHERE v.id = #{id}
+    </select>
+
+    <select id="findVideosByUserId" resultMap="videoDataResponseMap">
+        SELECT
+        v.id AS video_id,
+        v.*,
+        vs.*,
+        u.id AS user_id,
+        u.nickname,
+        u.gender,
+        u.avatar_url,
+        u.description AS user_description,
+        <choose>
+            <when test="userId != null">
+                MAX(CASE WHEN cr.video_id IS NOT NULL THEN 1 ELSE 0 END) AS had_coin,
+                MAX(CASE WHEN fr.video_id IS NOT NULL THEN 1 ELSE 0 END) AS had_favorites,
+                MAX(CASE WHEN lr.video_id IS NOT NULL THEN 1 ELSE 0 END) AS had_like,
+                ur.id AS ur_id,
+                ur.user_id AS ur_user_id,
+                ur.target_id AS ur_target_id,
+                ur.relation_type AS ur_relation_type
+            </when>
+            <otherwise>
+                NULL AS had_coin,
+                NULL AS had_favorites,
+                NULL AS had_like,
+                NULL AS ur_id,
+                NULL AS ur_user_id,
+                NULL AS ur_target_id,
+                NULL AS ur_relation_type
+            </otherwise>
+        </choose>
+        FROM video v
+        JOIN video_stats vs ON v.id = vs.video_id
+        JOIN user u ON v.author = u.id
+        <if test="userId != null">
+            LEFT JOIN coin_record cr ON v.id = cr.video_id AND cr.user_id = #{userId}
+            LEFT JOIN favorites_record fr ON v.id = fr.video_id AND fr.user_id = #{userId}
+            LEFT JOIN like_record lr ON v.id = lr.video_id AND lr.user_id = #{userId}
+            LEFT JOIN user_relation ur ON ur.user_id = #{userId} AND ur.target_id = v.author
+        </if>
+        GROUP BY v.id, u.id, ur.id
+        <choose>
+            <when test="isHot">
+                ORDER BY vs.view_count DESC, vs.like_count DESC
+            </when>
+            <otherwise>
+                ORDER BY v.created DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+
+
+    <select id="findVideos" resultMap="videoDataResponseMap">
+        SELECT
+        v.id AS video_id,
+        v.*,
+        vs.*,
+        u.id AS user_id,
+        u.nickname,
+        u.gender,
+        u.avatar_url,
+        u.description AS user_description
+        FROM video v
+        JOIN video_stats vs ON v.id = vs.video_id
+        JOIN user u ON v.author = u.id
+        <if test="isHot">
+            ORDER BY vs.view_count DESC, vs.like_count DESC
+        </if>
+        <if test="!isHot">
+            ORDER BY v.created DESC
+        </if>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findVideosIdsByCategory" resultType="integer">
+        SELECT id
+        FROM video
+        WHERE category = #{category}
+        <if test="isHot">
+            ORDER BY (SELECT view_count FROM video_stats WHERE video_id = video.id) DESC
+        </if>
+        <if test="!isHot">
+            ORDER BY created DESC
+        </if>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findVideoForDynamic" resultMap="videoDataResponseMap">
+        select
+        v.id AS video_id,
+        v.*,
+        vs.video_id AS vs_video_id,
+        vs.*
+        from user_relation ur
+        join video v on v.author = ur.target_id
+        left join video_stats vs on v.id = vs.video_id
+        where ur.user_id = #{userId}
+        <if test="lastCreated!=null">
+            and v.created &lt; lastCreated
+        </if>
+        limit
+        <if test="lastCreated==null">
+            0,
+        </if>
+        #{limit}
+    </select>
+
+    <select id="findVideoForDynamicByAuthor" resultMap="videoDataResponseMap">
+        select
+        v.id AS video_id,
+        v.*,
+        vs.video_id AS vs_video_id,
+        vs.*
+        from video v
+        left join video_stats vs
+        on v.id = vs.video_id
+        where author = #{authorId}
+        <if test="lastCreated!=null">
+            and v.created &lt; lastCreated
+        </if>
+        order by created desc
+        limit
+        <if test="lastCreated==null">
+            0,
+        </if>
+        #{limit}
+    </select>
+</mapper>

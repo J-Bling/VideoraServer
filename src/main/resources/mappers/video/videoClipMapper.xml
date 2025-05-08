@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.video.VideoClipDao">
+    <insert id="insertVideoClip" parameterType="com.server.entity.video.VideoClip">
+        insert into video_clip (video_id,video_index,duration,url,quality,width,height,format) values
+        (#{video_id}, #{video_index}, #{duration}, #{url}, #{quality}, #{width}, #{height}, #{format})
+    </insert>
+
+    <select id="findAllClipsByVideoIdWithQuality" resultType="com.server.dto.response.video.VideoClipsResponse">
+        select video_index,duration,url from video_clip where video_id=#{videoId} and quality =#{quality}
+    </select>
+</mapper>

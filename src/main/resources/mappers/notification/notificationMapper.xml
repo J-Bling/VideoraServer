@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.notification.NotificationDao">
+
+    <insert id="batchInsert" parameterType="com.server.push.entity.Notification">
+        insert into notification (message_id,user_id,target_id,type,is_read,created,message,tag_id)
+        values
+        <foreach collection="notifications" separator="," item="n">
+            (#{n.message_id},#{n.user_id},#{n.target_id},#{n.type},#{n.is_read},#{n.created},#{n.message},#{n.tag_id})
+        </foreach>
+    </insert>
+
+    <update id="batchUpdateStatus">
+        update notification set is_read=1 where message_id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </update>
+
+
+    <resultMap id="HistoryNotificationResponse" type="com.server.push.dto.response.HistoryNotificationResponse">
+        <association property="notifications" javaType="com.server.push.entity.Notification">
+            <id property="message_id" column="n_messageId"/>
+            <id property="user_id" column="n_userId"/>
+            <result property="target_id" column="n_targetId"/>
+            <result property="tag_id" column="n_tag"/>
+            <result property="message" column="n_message"/>
+            <result property="type" column="type"/>
+            <result property="is_read" column="n_read"/>
+            <result property="created" column="n_created"/>
+        </association>
+        <association property="other" javaType="com.server.dto.response.user.UserResponse">
+            <id property="id" column="u_id"/>
+            <result property="nickname" column="u_nickname"/>
+            <result property="gender" column="u_gender"/>
+            <result property="avatar_url" column="u_avatar"/>
+            <result property="description" column="u_description"/>
+        </association>
+        <association property="context" javaType="com.server.dto.response.video.VideoDataResponse">
+            <id property="id" column="v_id"/>
+            <result property="title" column="v_title"/>
+            <result property="description" column="v_description"/>
+            <result property="category" column="v_category"/>
+            <result property="duration" column="v_duration"/>
+            <result property="width" column="v_width"/>
+            <result property="height" column="v_height"/>
+            <result property="format" column="v_format"/>
+            <result property="cover_url" column="v_cover"/>
+            <result property="clips_count" column="v_clips"/>
+            <result property="created" column="v_created"/>
+            <result property="updated" column="v_updated"/>
+            <result property="authorId" column="v_author"/>
+        </association>
+    </resultMap>
+    <select id="findHistoryVideoDynamic" resultMap="HistoryNotificationResponse">
+        select
+        n.message_id AS n_messageId,
+        n.user_id AS n_userId,
+        n.target_id AS n_targetId,
+        n.tag_id AS n_tag,
+        n.message AS n_message,
+        n.type AS type,
+        n.is_read AS n_read,
+        n.created AS n_created,
+        u.id AS u_id,
+        u.nickname AS u_nickname,
+        u.gender AS u_gender,
+        u.avatar_url AS u_avatar,
+        u.description AS u_description,
+        v.id AS v_id,
+        v.title AS v_title,
+        v.description AS v_description,
+        v.category AS v_category,
+        v.duration AS v_duration,
+        v.width AS v_width,
+        v.height AS v_height,
+        v.format AS v_format,
+        v.cover_url AS v_cover,
+        v.clips_count AS v_clips,
+        v.created AS v_created,
+        v.updated AS v_updated,
+        v.author AS v_author
+        from notification n
+        left join user u on n.target_id = u.id
+        left join video v on n.tag_id=v.id
+        where n.user_id=#{userId}
+        and n.type=#{type}
+        <if test="authorId!=null">
+            and n.target_id=#{authorId}
+        </if>
+        <if test="createdLast!=null">
+            and n.created &lt; #{createdLast}
+        </if>
+        order by n.created desc
+        limit #{limit}
+    </select>
+</mapper>

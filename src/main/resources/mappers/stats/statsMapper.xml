@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.stats.StatsDao">
+    <update id="batchUpdateUserStats">
+        UPDATE user_stats
+        SET ${column} = ${column} + CASE user_id
+        <foreach collection="tasks" item="task">
+            WHEN #{task.targetId} THEN #{task.count}
+        </foreach>
+        END
+        WHERE user_id IN
+        <foreach collection="tasks" item="task" open="(" separator="," close=")">
+            #{task.targetId}
+        </foreach>
+    </update>
+
+    <update id="batchUpdateVideoStats">
+        UPDATE video_stats
+        SET ${column} = ${column} + CASE video_id
+        <foreach collection="tasks" item="task">
+            WHEN #{task.targetId} THEN #{task.count}
+        </foreach>
+        END
+        WHERE video_id IN
+        <foreach collection="tasks" item="task" open="(" separator="," close=")">
+            #{task.targetId}
+        </foreach>
+    </update>
+</mapper>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.user.UserDao">
+
+    <select id="findUserByPhone" resultType="com.server.entity.user.User">
+        select id,nickname,phone,salt,password,gender,avatar_url,
+        description,locked,admin,gender
+        from user where phone=#{phone}
+    </select>
+
+    <select id="findUserByEmail" resultType="com.server.entity.user.User">
+        select id,nickname,phone,salt,password,gender,avatar_url,
+        description,locked,admin,gender
+        from user where email=#{email}
+    </select>
+
+    <select id="findUserById" resultType="com.server.entity.user.User">
+        select id,nickname,email,phone,gender,avatar_url,description,locked,admin,created
+        from user where email=#{email}
+    </select>
+
+    <insert id="increaseUserByPhone" parameterType="com.server.entity.user.User"
+            useGeneratedKeys="true" keyProperty="id">
+        insert ignore into user (nickname,phone,salt,password,gender,avatar_url,description)
+        values
+        (#{nickname},#{phone},#{salt},#{password},#{gender},#{avatar_url},#{description})
+    </insert>
+
+    <insert id="increaseUserByEmail" parameterType="com.server.entity.user.User"
+            useGeneratedKeys="true" keyProperty="id">
+        insert ignore into user (nickname,email,salt,password,gender,avatar_url,description)
+        values
+        (#{nickname},#{email},#{salt},#{password},#{gender},#{avatar_url},#{description})
+    </insert>
+
+
+    <select id="findUserDataById" resultType="com.server.dto.response.user.UserResponse">
+        select id,nickname,gender,avatar_url,description from user where id=#{id}
+    </select>
+
+    <select id="findFriends" resultType="com.server.dto.response.user.UserResponse">
+        SELECT u.id, u.nickname, u.gender, u.avatar_url, u.description
+        FROM user u
+        JOIN user_relation ur ON u.id = ur.target_id
+        WHERE ur.user_id = #{userId} AND ur.relation_type = 1
+    </select>
+</mapper>

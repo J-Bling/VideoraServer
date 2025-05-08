@@ -1,0 +1,51 @@
+server:
+  port: 8001
+spring:
+  redis:
+    host: 159.75.68.114
+    port: 6379
+    password: 13232112651aA!
+  datasource:
+    url: jdbc:mysql://localhost:3306/bilibili?allowMultiQueries=true&useSSL=false&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 12345678
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: 30000 #设置从连接池获取连接的超时时间（单位：毫秒
+      maximum-pool-size: 30 #设置连接池的最大连接数
+      minimum-idle: 5           # 最小空闲连接数（默认与 maximum-pool-size 相同）
+      idle-timeout: 600000      # 空闲连接超时时间（默认 10 分钟）
+      max-lifetime: 1800000     # 连接最大存活时间（默认 30 分钟）
+      housekeeping-period-ms: 300000
+  mail:
+    host: smtp.163.com
+    port: 465
+    username: 19102733914@163.com
+    password: ZHkmxKpHYDCzW6rb
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          connectiontimeout : 5000
+          timeout: 5000
+          writetimeout: 5000
+          ssl:
+            enable: true
+
+springdoc:
+  swagger-ui:
+    path: /api-docs.html
+    tags-sorter: alpha
+  api-docs:
+    path: /api-docs.json
+
+
+MEDIA_PREDIX: /media/hd/
+MEDIA_COMPRESS_PREFIX: /media/sd/
+IMAGE_AVATAR_PREFIX: /image/avatar/
+IMAGE_COVER_PREFIX: /image/cover/
+VIDEO_COVER_BASE_URL: /opt/homebrew/var/www/image/cover/
+VIDEO_FILE_BASE_URL: /opt/homebrew/var/www/media/hd/
+VIDEO_COMPRESS_FILE_BASE_URL: /opt/homebrew/var/www/media/sd/
+USER_AVATAR_BASE_URL: /opt/homebrew/var/www/image/avatar/

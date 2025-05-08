@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.comment.CommentUserActionDao">
+
+    <update id="cancelAction" parameterType="com.server.dto.request.comment.CommentUserActionRequest">
+        update comment_user_actions set action_type=null where comment_id=#{commentId} and user_id=#{userId}
+    </update>
+
+    <insert id="createAction" parameterType="com.server.dto.request.comment.CommentUserActionRequest">
+        insert into comment_user_actions (comment_id,user_id,action_type) values (#{comment_id},#{user_id},#{action_type})
+        on duplicate key update action_type=#{action_type}
+    </insert>
+
+    <select id="findActionList" resultType="com.server.entity.comment.CommentUserActions">
+        select comment_id,user_id,action_type from comment_user_actions where user_id=#{userId}
+        and comment_id in
+        <foreach collection="comments" item="comment" separator="," close=")" open="(">
+            #{comment.id}
+        </foreach>
+    </select>
+
+    <delete id="deleteBatchCascade">
+        delete from comment_user_actions where comment_id in
+        <foreach collection="commentIds" item="commentId" open="(" close=")" separator=",">
+            #{commentId}
+        </foreach>
+    </delete>
+</mapper>

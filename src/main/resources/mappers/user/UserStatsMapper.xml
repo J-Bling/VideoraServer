@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.stats.UserStatsDao">
+    <select id="findUserStats" resultType="com.server.entity.user.UserStats">
+        select user_id,video_count,like_count,following_count,follower_count,coin_balance from user_stats where user_id=#{userId}
+    </select>
+</mapper>

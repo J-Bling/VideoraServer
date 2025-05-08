@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.record.RecordDao">
+    <update id="batchUpdateRecord">
+        <foreach collection="records" separator=";" item="record">
+            <choose>
+                <when test="!record.type">
+                    delete from ${table} where video_id=#{record.targetId} and user_id=#{record.userId}
+                </when>
+                <otherwise>
+                    insert ignore into ${table} (video_id,user_id) values (#{record.targetId},#{record.userId})
+                </otherwise>
+            </choose>
+        </foreach>
+    </update>
+
+    <update id="batchUpdateRelation">
+        <foreach collection="records" item="record" separator=";">
+            <choose>
+                <when test="record.type==null">
+                    delete from user_relation where target_id=#{record.targetId} and user_id=#{record.userId}
+                </when>
+                <otherwise>
+                    insert into user_relation (target_id,user_id,relation_type) values (#{record.targetId},#{record.userId},#{record.type})
+                    on duplicate key update relation_type=#{record.type}
+                </otherwise>
+            </choose>
+        </foreach>
+    </update>
+</mapper>
