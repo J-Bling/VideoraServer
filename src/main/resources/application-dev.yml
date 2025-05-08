@@ -20,8 +20,8 @@ spring:
   mail:
     host: smtp.163.com
     port: 465
-    username: 19102733914@163.com
-    password: ZHkmxKpHYDCzW6rb
+    username:
+    password:
     protocol: smtp
     properties:
       mail:
