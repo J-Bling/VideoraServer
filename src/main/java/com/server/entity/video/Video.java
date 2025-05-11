@@ -11,7 +11,7 @@ public class Video {
     private String description;
     private Integer author;
     private String category;
-    private Double file_size;//大小mb
+    private Integer file_size;//大小mb
     private Integer duration;//时长
     private Integer width;
     private Integer height;

@@ -1,5 +1,7 @@
 package com.server.controller.api.videos.impl;
 
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.server.controller.api.videos.VideoUploadController;
 import com.server.dto.request.video.VideoClipUploadRequest;
 import com.server.dto.request.video.VideoUploadRequest;
@@ -34,6 +36,7 @@ public class VideoUploadImpl implements VideoUploadController {
     @Autowired private VideoEditService videoEditService;
 
     private final Logger logger= LoggerFactory.getLogger(VideoUploadImpl.class);
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     @PostMapping(value = "/init",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -42,10 +45,17 @@ public class VideoUploadImpl implements VideoUploadController {
             ",上传的clip_count 数量需要等于最后一段分片的index")
     public ResponseEntity<Result> updateInit(
             HttpServletRequest request,
-            @RequestParam("uploadRequest") VideoUploadRequest uploadRequest,
+            @RequestParam("uploadRequest") String uploadRequestSTr,
             @RequestParam("imageFile") MultipartFile imageFile)
     {
         try{
+            VideoUploadRequest uploadRequest ;
+            try{
+                uploadRequest =mapper.readValue(uploadRequestSTr,mapper.constructType(VideoUploadRequest.class));
+            }catch(Exception e){
+                return Result.ErrorResult(ErrorCode.BAD_REQUEST,"数据格式错误");
+            }
+
             Integer userId=(Integer) request.getAttribute("id");
             if(userId==null) return Result.ErrorResult(ErrorCode.UNAUTHORIZED,0);
 
@@ -62,7 +72,7 @@ public class VideoUploadImpl implements VideoUploadController {
             return Result.ErrorResult(apiException.getErrorCode(),"视频上传失败");
         }catch (Exception e){
             logger.error("server fail reason is {}",e.getMessage(),e);
-            return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
+            return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,"服务器错误");
         }
     }
 
@@ -71,9 +81,17 @@ public class VideoUploadImpl implements VideoUploadController {
     @Operation(summary = "上传视频分片",description = "逐个上传 存储 会返回下一个分片的索引")
     public ResponseEntity<Result> uploadChunk(
             HttpServletRequest request,
-            @RequestParam("clipUploadRequest") VideoClipUploadRequest clipUploadRequest,
+            @RequestParam("clipUploadRequest") String clipUploadRequestStr,
             @RequestParam("videoFile") MultipartFile videoFile) {
         try{
+            VideoClipUploadRequest clipUploadRequest ;
+
+            try{
+                clipUploadRequest = mapper.readValue(clipUploadRequestStr,mapper.constructType(VideoClipUploadRequest.class));
+            }catch (Exception e){
+                return Result.ErrorResult(ErrorCode.BAD_REQUEST,"数据格式错误");
+            }
+
             Integer userId=(Integer) request.getAttribute("id");
             if(userId==null) return Result.ErrorResult(ErrorCode.UNAUTHORIZED,0);
 

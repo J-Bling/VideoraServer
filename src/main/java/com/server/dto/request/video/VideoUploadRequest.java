@@ -9,7 +9,7 @@ public class VideoUploadRequest {
     private String title;
     private String description;
     private String category;
-    private Double file_size;
+    private Integer file_size;
     private Integer duration;
     private Integer width;
     private Integer height;
@@ -43,7 +43,7 @@ public class VideoUploadRequest {
     }
     public VideoUploadRequest(){}
     public VideoUploadRequest(String title,String description,String category,
-                              Double file_size,Integer duration,Integer width,
+                              Integer file_size,Integer duration,Integer width,
                               Integer height,String format,Integer clips_count)
     {
         this.title=title;
