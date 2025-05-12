@@ -1,6 +1,10 @@
 server:
   port: 8001
 spring:
+  servlet:
+    multipart:
+      max-file-size: 1000MB
+      max-request-size: 3000MB
   redis:
     host: localhost
     port: 6379
@@ -41,6 +45,7 @@ springdoc:
     path: /api-docs.json
 
 # /home/ubuntu/var/www
+STATIC_FILE_URL : /opt/homebrew/var/www
 MEDIA_PREDIX: /media/hd/
 MEDIA_COMPRESS_PREFIX: /media/sd/
 IMAGE_AVATAR_PREFIX: /image/avatar/

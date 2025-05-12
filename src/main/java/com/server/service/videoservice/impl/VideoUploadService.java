@@ -1,5 +1,6 @@
 package com.server.service.videoservice.impl;
 
+import com.server.dao.stats.UserStatsDao;
 import com.server.dao.stats.VideoStatsDao;
 import com.server.dao.video.VideoClipDao;
 import com.server.dao.video.VideoDao;
@@ -39,7 +40,10 @@ public class VideoUploadService implements VideoEditService {
     @Autowired private NotificationService notificationService;
     @Autowired private VideoService videoService;
     @Autowired private DynamicService dynamicService;
+//    @Autowired private UserStatsDao userStatsDao;
 
+    @Value("${STATIC_FILE_URL}")
+    private String STATIC_FILE_URL;
     @Value("${VIDEO_COVER_BASE_URL}")
     private  String VIDEO_COVER_BASE_URL;
     @Value("${VIDEO_FILE_BASE_URL}")
@@ -53,7 +57,6 @@ public class VideoUploadService implements VideoEditService {
     @Value("${IMAGE_COVER_PREFIX}")
     private String IMAGE_COVER_PREFIX;
 
-    private static final int CLEAN_QUEUE_SPACED=120*1000;
     private final List<String> allowedExtensions = Arrays.asList("jpg", "jpeg", "png", "gif");
     List<String> videoFormats =
             Arrays.asList("mp4", "avi", "mkv", "mov", "webm", "flv", "mpeg", "mpg", "3gp", "ts", "m2ts", "vob");
@@ -88,7 +91,7 @@ public class VideoUploadService implements VideoEditService {
         video.setReview_status(ReviewCode.REVIEWING.getCode());
         this.videoDao.insertVideo(video);
         this.videoStatsDao.createVideoStatsTable(video.getId());
-        this.userStatsService.CountVideo(video.getAuthor(),1);
+        this.userStatsService.CountVideo(video.getAuthor(), 1);
         return video.getId();
     }
 
@@ -138,7 +141,46 @@ public class VideoUploadService implements VideoEditService {
 
     @Override
     public void deleteVideoDataForUploadFail(Integer videoId, Integer authorId) {
+        Video video =videoDao.findVideoById(videoId);
+        if(video==null) return;
 
+        String url = video.getCover_url();
+        url = STATIC_FILE_URL+url;
+
+        videoDao.deleteVideoById(videoId);
+        userStatsService.CountVideo(authorId,-1);
+        videoDao.deleteVideoStatsById(videoId);
+        notificationService.auditingStatusNotification(authorId,videoId,false);
+
+        Object[] videoClips=COMPRESS_QUEUE.toArray();
+        for(Object obj : videoClips){
+            VideoClip clip = (VideoClip) obj;
+            if(clip!=null){
+                if(clip.getVideo_id().equals(videoId)){
+                    COMPRESS_QUEUE.remove(obj);
+                }
+            }
+        }
+
+        try{
+            new File(url).delete();
+        }catch(Exception e){
+            logger.error("remove file : {} , fail : {} ",url,e.getMessage(),e);
+        }
+
+       List<VideoClip> clips = videoClipDao.findAllByVideoId(videoId);
+       if(clips==null || clips.isEmpty()) return;
+
+       for(VideoClip clip : clips){
+           videoClipDao.deleteClipById(clip.getId());
+           String path = clip.getUrl();
+           path = STATIC_FILE_URL+path;
+           try{
+               new File(path).delete();
+           }catch(Exception e){
+               logger.error("remove file : {} , fail : {} ",path,e.getMessage(),e);
+           }
+       }
     }
 
     @Scheduled(fixedRate = 75*1000)
@@ -154,38 +196,37 @@ public class VideoUploadService implements VideoEditService {
 
         if(videoClips.isEmpty()) return;
 
-        Map<Integer,Integer> videoIdToClipsCount=new HashMap<>();
         for(VideoClip clip : videoClips){
-            Integer count=videoIdToClipsCount.get(clip.getVideo_id());
-            if(count==null){
-                count=this.videoDao.findVideoClipCount(clip.getVideo_id());
-                if(count!=null) videoIdToClipsCount.put(clip.getVideo_id(),count--);
-            }
-
-            if(count==null) continue;
 
             String suffix=System.currentTimeMillis()+UUID.randomUUID().toString()+".mp4";
             String filename=VIDEO_COMPRESS_FILE_BASE_URL+suffix;
             boolean stats= videoCompressorUtil.smartCompress(clip.getUrl(),filename,PresetProfile.BALANCE);
+            VideoDataResponse video= videoService.getVideoResponseData(clip.getVideo_id(),null);
             if(!stats) {
                 logger.error("文件压缩失败 ： 原文件名 ： {}", clip.getUrl());
+                notificationService.auditingStatusNotification(video.getAuthorId(),video.getId(),false);
+                this.deleteVideoDataForUploadFail(video.getId(),video.getAuthorId());
                 continue;
             }
 
-            //压缩完成后 : 写入数据库
-            clip.setUrl(MEDIA_COMPRESS_PREFIX+suffix);
-            this.videoClipDao.insertVideoClip(clip);
-            //如果更新完成 发生消息通知用户 审核通过
-            if(count==0){
-                //当count 剩余量==0将通知用户视频审核通过
-                videoIdToClipsCount.remove(clip.getVideo_id());
-                this.videoDao.updateReviewStatus(clip.getVideo_id(),true);
-                VideoDataResponse video= videoService.getVideoResponseData(clip.getVideo_id(),null);
-                notificationService.auditingStatusNotification(video.getAuthorId(),clip.getVideo_id(),true);
-                notificationService.newDevelopmentToFunNotices(video.getAuthorId(),clip.getVideo_id());
-                dynamicService.setVideoIdsInCache(video.getAuthorId(),clip.getVideo_id());
+            if(video.getAuthorId()==null){
+                if(video.getAuthor()!=null){
+                    video.setAuthorId(video.getAuthor().getId());
+                }
+            }
+
+            try {
+                //压缩完成后 : 写入数据库
+                clip.setUrl(MEDIA_COMPRESS_PREFIX + suffix);
+                this.videoClipDao.insertVideoClip(clip);
+                this.videoDao.updateReviewStatus(clip.getVideo_id(), true);
+                dynamicService.setVideoIdsInCache(video.getAuthorId(), clip.getVideo_id());
+                notificationService.auditingStatusNotification(video.getAuthorId(), clip.getVideo_id(), true);
+                notificationService.newDevelopmentToFunNotices(video.getAuthorId(), clip.getVideo_id());
+            } catch (Exception e) {
+                this.deleteVideoDataForUploadFail(video.getId(),video.getAuthorId());
+                logger.error("压缩完成后 处理业务失败 失败原因 : {}",e.getMessage(),e);
             }
         }
-
     }
 }

@@ -2,7 +2,9 @@ package com.server.dao.video;
 
 import com.server.dto.response.video.VideoDataResponse;
 import com.server.entity.video.Video;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.springframework.lang.Nullable;
 
 import java.sql.Timestamp;
@@ -26,4 +28,13 @@ public interface VideoDao {
     List<VideoDataResponse> findVideoForDynamicByAuthor(@Param("authorId") Integer authorId,
                                                         @Nullable @Param("lastCreated") Timestamp lastCreated,
                                                         @Param("limit") int limit);
+
+    @Delete("delete from video where id = #{id}")
+    void deleteVideoById(@Param("id") Integer id);
+
+    @Delete("delete from video_stats where video_id=#{id}")
+    void  deleteVideoStatsById(@Param("id") Integer id);
+
+    @Select("select * from video where id =#{id}")
+    Video findVideoById(@Param("id") Integer id);
 }

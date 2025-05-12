@@ -17,7 +17,7 @@ public interface NotificationService {
     void followToAuthorNotices(Integer myId,Integer authorId);
     void letterToOtherNotices(Integer myId,Integer otherId);
     void newDevelopmentToFunNotices(Integer myId,Integer videoId);
-    void auditingStatusNotification(Integer targetId,Integer videoId,boolean isPass);
+    void auditingStatusNotification(Integer userId,Integer videoId,boolean isPass);
 
 
     /**

@@ -110,7 +110,6 @@ public class UserStatsServiceImpl extends Stats implements UserStatsService {
 
     @Override
     public void CountVideo(Integer userId, long count) {
-        if(count <=0) return;
         updateCache(USER_STATS(userId),RedisKeyConstant.USER_VIDEO_COUNT,count,userId);
     }
 

@@ -6,6 +6,7 @@ import com.server.controller.api.videos.VideoUploadController;
 import com.server.dto.request.video.VideoClipUploadRequest;
 import com.server.dto.request.video.VideoUploadRequest;
 import com.server.dto.response.Result;
+import com.server.entity.constant.WebConstant;
 import com.server.entity.video.Video;
 import com.server.entity.video.VideoClip;
 import com.server.enums.ErrorCode;
@@ -18,10 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
@@ -56,8 +54,7 @@ public class VideoUploadImpl implements VideoUploadController {
                 return Result.ErrorResult(ErrorCode.BAD_REQUEST,"数据格式错误");
             }
 
-            Integer userId=(Integer) request.getAttribute("id");
-            if(userId==null) return Result.ErrorResult(ErrorCode.UNAUTHORIZED,0);
+            Integer userId= Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
 
             if(!uploadRequest.isVail()) return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
             Video video= uploadRequest.toEntity();
@@ -92,9 +89,6 @@ public class VideoUploadImpl implements VideoUploadController {
                 return Result.ErrorResult(ErrorCode.BAD_REQUEST,"数据格式错误");
             }
 
-            Integer userId=(Integer) request.getAttribute("id");
-            if(userId==null) return Result.ErrorResult(ErrorCode.UNAUTHORIZED,0);
-
             if(!clipUploadRequest.isValue()) return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
 
             VideoClip videoClip=clipUploadRequest.toEntity();
@@ -103,6 +97,24 @@ public class VideoUploadImpl implements VideoUploadController {
             data.put("nextIndex",nextIndex);
             return Result.Ok(data);
 
+        }catch (ApiException apiException){
+            return Result.ErrorResult(apiException.getErrorCode(),"分片上传失败");
+        }catch (Exception e){
+            logger.error("server fail reason is {}",e.getMessage(),e);
+            return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
+        }
+    }
+
+
+    @GetMapping("/delete/{videoId}")
+    public ResponseEntity<Result> deleteVideo(
+            HttpServletRequest request,
+            @PathVariable("videoId") Integer videoId
+    ){
+        try{
+            Integer userId= Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
+            videoEditService.deleteVideoDataForUploadFail(videoId,userId);
+            return Result.Ok(1);
         }catch (ApiException apiException){
             return Result.ErrorResult(apiException.getErrorCode(),"分片上传失败");
         }catch (Exception e){

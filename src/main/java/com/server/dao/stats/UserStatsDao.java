@@ -3,6 +3,7 @@ import com.server.entity.user.UserStats;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 public interface UserStatsDao {
 
@@ -13,4 +14,10 @@ public interface UserStatsDao {
 
     @Insert("INSERT IGNORE INTO user_stats (user_id) VALUES (#{userId})")
     void insertUserStats(@Param("userId") int userId);
+
+//    @Update("update user_stats set video_count=video_count-1 where user_id=#{id}")
+//    void increaseVideoCountById(@Param("id") Integer id);
+//
+//    @Update("update user_stats set video_count=video_count-1 where user_id=#{id} AND video_count > 0")
+//    void decreaseVideoCountById(@Param("id") Integer id);
 }

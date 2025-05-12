@@ -249,16 +249,16 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void auditingStatusNotification(Integer targetId, Integer videoId,boolean isPass) {
-        if(targetId==null || videoId==null) return;
+    public void auditingStatusNotification(Integer userId, Integer videoId,boolean isPass) {
+        if(userId==null || videoId==null) return;
         String message = NotificationCode.SERVER_BULLETIN.getDescription()+
                 (isPass ? "你发布视频已经被审核通过"
                         : "你发布的视频审核不通过");
 
         Notification notification = Notification.builder()
                 .messageId(UUID.randomUUID().toString())
-                .userId(0)
-                .targetId(targetId)
+                .userId(userId)
+                .targetId(0)
                 .tagId(videoId)
                 .isRead(false)
                 .created(System.currentTimeMillis())
