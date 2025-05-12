@@ -42,7 +42,7 @@ public class VideoUploadService implements VideoEditService {
     @Autowired private VideoService videoService;
     @Autowired private DynamicService dynamicService;
     @Autowired private VideoFractionStatsService videoFractionStatsService;
-//    @Autowired private UserStatsDao userStatsDao;
+
 
     @Value("${STATIC_FILE_URL}")
     private String STATIC_FILE_URL;
@@ -217,7 +217,6 @@ public class VideoUploadService implements VideoEditService {
             }
 
             try {
-                //压缩完成后 : 写入数据库
                 clip.setUrl(MEDIA_COMPRESS_PREFIX + suffix);
                 this.videoClipDao.insertVideoClip(clip);
                 this.videoDao.updateReviewStatus(clip.getVideo_id(), true);

@@ -138,11 +138,4 @@ public class VideoFractionStatsServiceImpl implements VideoFractionStatsService 
     public void increaseFraction(String field, double count) {
         redis.zIncrBy(VIDEO_RANKING_KEY,field,count);
     }
-
-    @Override
-    public Long sizeForFraction(){
-        Long count=redis.zCard(VIDEO_RANKING_KEY);
-        return count!=null ? count : 0;
-    }
-
 }

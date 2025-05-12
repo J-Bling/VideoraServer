@@ -75,7 +75,7 @@ public class VideoServiceImpl implements VideoService {
             interactionService.setRecordOnCache(videoDataResponse.getVideoRecordForUser(),userId, videoDataResponse.getId());
             interactionService.setRelationOnCache(videoDataResponse.getAuthor().getUserRelation());
         }catch (Exception e){
-            logger.error("",e);
+            logger.error(e.getMessage());
         }
     }
 

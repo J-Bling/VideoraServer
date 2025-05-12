@@ -9,12 +9,14 @@ import com.server.entity.cache.record.RecordUpdate;
 import com.server.entity.cache.stats.StatsUpdateTask;
 import com.server.entity.constant.RedisKeyConstant;
 import com.server.dao.notification.NotificationDao;
+import com.server.enums.VideoCategory;
 import com.server.message.entity.Message;
 import com.server.message.service.impl.ChatWebSocketHandlerImpl;
 import com.server.push.entity.Notification;
 import com.server.push.enums.NotificationCode;
 import com.server.push.handle.NotificationHandlerImpl;
 import com.server.push.service.impl.NotificationServiceImpl;
+import com.server.service.videoservice.VideoFractionStatsService;
 import com.server.util.redis.RedisUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +49,9 @@ public class ScheduleCenter {
 
     @Autowired
     private MessageDao messageDao;
+
+    @Autowired
+    private VideoFractionStatsService videoFractionStatsService;
 
     private static final long CLEAN_UPDATE_CACHE_SPACED=85L*1000;
     private static final long INSERT_NOTIFICATION_SPACED=45L*1000;
@@ -251,22 +256,16 @@ public class ScheduleCenter {
 
     private void updateVideoRank(){
         try {
+            String[] categoryNames= VideoCategory.categoryName();
+            Set<String> deleteFile = new HashSet<>();
 
-            Map<Object, Object> lifts = redis.hGetAll(RedisKeyConstant.VIDEO_RANK_LIFE_HASH_KEY);
-            if (!lifts.isEmpty()) {
-
-                long now = System.currentTimeMillis();
-                Set<String> videoIds = new HashSet<>();
-                for (Map.Entry<Object, Object> lift : lifts.entrySet()) {
-                    String videoId = lift.getKey().toString();
-                    long time = Long.parseLong(lift.getValue().toString());
-                    if (time - now > RedisKeyConstant.RANK_CACHE_LIFE_CYCLE) {
-                        videoIds.add(videoId);
-                    }
-                }
-                redis.zRem(RedisKeyConstant.VIDEO_RANKING_KEY, String.join(",", videoIds));
-                redis.hDel(RedisKeyConstant.VIDEO_RANK_LIFE_HASH_KEY, String.join(",", videoIds));
+            for (String categoryName : categoryNames) {
+                deleteFile.add(RedisKeyConstant.VIDEO_RANKING_KEY + categoryName);
             }
+
+            deleteFile.add(RedisKeyConstant.VIDEO_RANKING_KEY);
+            redis.delete(deleteFile);
+
         }catch (Exception e) {
             logger.error("updateVideoRankSpaced 删除缓存缓存失败 : {}", e.getMessage(), e);
         }
@@ -326,13 +325,10 @@ public class ScheduleCenter {
         }
     }
 
-    /**
-     * 凌晨0点更新
-     */
-    @Scheduled(cron = "0 0 0 * * ?") //每天执行一次
+    @Scheduled(fixedRate = RedisKeyConstant.RANK_CACHE_LIFE_CYCLE)
     public void updateVideoRankSpaced() {
         updateVideoRank();
-
+        videoFractionStatsService.init();
     }
 
     /**

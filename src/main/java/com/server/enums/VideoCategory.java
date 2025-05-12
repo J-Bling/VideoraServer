@@ -24,6 +24,14 @@ public enum VideoCategory {
     private final String name;
     private final String description;
 
+    public static String[] categoryName(){
+        String[] names = new String[values().length];
+        for(int i=0;i<values().length;i++){
+            names[i]=values()[i].getName();
+        }
+        return names;
+    }
+
     VideoCategory(String name, String description) {
         this.name = name;
         this.description = description;

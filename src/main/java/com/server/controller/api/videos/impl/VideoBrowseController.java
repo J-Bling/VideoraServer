@@ -87,6 +87,4 @@ public class VideoBrowseController {
             return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
         }
     }
-
-
 }
