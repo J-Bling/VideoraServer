@@ -1,6 +1,6 @@
 package com.server.service.videoservice.impl;
 
-import com.server.dao.stats.UserStatsDao;
+
 import com.server.dao.stats.VideoStatsDao;
 import com.server.dao.video.VideoClipDao;
 import com.server.dao.video.VideoDao;
@@ -14,6 +14,7 @@ import com.server.push.service.NotificationService;
 import com.server.service.dynamic.DynamicService;
 import com.server.service.stats.UserStatsService;
 import com.server.service.videoservice.VideoEditService;
+import com.server.service.videoservice.VideoFractionStatsService;
 import com.server.service.videoservice.VideoService;
 import com.server.util.ffmpeg.VideoCompressorUtil;
 import org.slf4j.Logger;
@@ -40,6 +41,7 @@ public class VideoUploadService implements VideoEditService {
     @Autowired private NotificationService notificationService;
     @Autowired private VideoService videoService;
     @Autowired private DynamicService dynamicService;
+    @Autowired private VideoFractionStatsService videoFractionStatsService;
 //    @Autowired private UserStatsDao userStatsDao;
 
     @Value("${STATIC_FILE_URL}")
@@ -128,7 +130,6 @@ public class VideoUploadService implements VideoEditService {
         videoClip.setUrl(filename);
         videoClip.setQuality(false);
         COMPRESS_QUEUE.offer(videoClip);
-        //  .. 消息通知。
 
         return videoClip.getVideo_index()+1;
     }
@@ -223,6 +224,7 @@ public class VideoUploadService implements VideoEditService {
                 dynamicService.setVideoIdsInCache(video.getAuthorId(), clip.getVideo_id());
                 notificationService.auditingStatusNotification(video.getAuthorId(), clip.getVideo_id(), true);
                 notificationService.newDevelopmentToFunNotices(video.getAuthorId(), clip.getVideo_id());
+                videoFractionStatsService.insertRank(video.getId(),video.getCategory());
             } catch (Exception e) {
                 this.deleteVideoDataForUploadFail(video.getId(),video.getAuthorId());
                 logger.error("压缩完成后 处理业务失败 失败原因 : {}",e.getMessage(),e);

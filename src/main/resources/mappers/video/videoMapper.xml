@@ -254,4 +254,23 @@
         </if>
         #{limit}
     </select>
+
+
+    <select id="fineVideoByCategory" resultMap="videoDataResponseMap">
+        select
+        v.category
+        vs.*
+        from video v
+        left join video_stats vs
+        on v.id=vs.video_id
+        where v.review_status = 1
+        order by vs.view_count
+        <if test="isHot">
+            desc
+        </if>
+        <if test="!isHot">
+            asc
+        </if>
+        limit #{limit}
+    </select>
 </mapper>

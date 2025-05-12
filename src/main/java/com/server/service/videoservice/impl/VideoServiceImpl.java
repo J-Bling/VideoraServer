@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
 
 @Slf4j
@@ -41,6 +40,7 @@ public class VideoServiceImpl implements VideoService {
     @Autowired private VideoFractionStatsService videoFractionStatsService;
 
 
+    private final ObjectMapper mapper = new ObjectMapper();
     private static final int LIMIT=10;
     private static final int CLIPS_COUNT_LIMIT=20;
     private static final int MAX_HOT_VIDEO_SIZE=5;
@@ -58,11 +58,13 @@ public class VideoServiceImpl implements VideoService {
     private String VIDEO_CLIPS_HEIGHT_HASH_KEY(Integer videoId){
         return RedisKeyConstant.VIDEO_CLIPS_DATA_KEY+"h:"+videoId;
     }
+    private String VIDEO_DATA_LOCK(Integer videoId){
+        return RedisKeyConstant.FIND_VIDEO_DATA_LOCK+videoId;
+    }
 
 
     private void setVideoDataInCache(VideoDataResponse videoDataResponse,Integer userId){
         if(videoDataResponse==null) return;
-        ObjectMapper mapper =new ObjectMapper();
         try{
             String data=mapper.writeValueAsString(VideoResponseCache.formVideoDataResponse(videoDataResponse));
             redis.set(VIDEO_DATA_KEY(videoDataResponse.getId()),data,RedisKeyConstant.CLEAN_CACHE_SPACED);
@@ -72,7 +74,6 @@ public class VideoServiceImpl implements VideoService {
             videoStatsService.setVideoStatsOnCache(videoStats);
             interactionService.setRecordOnCache(videoDataResponse.getVideoRecordForUser(),userId, videoDataResponse.getId());
             interactionService.setRelationOnCache(videoDataResponse.getAuthor().getUserRelation());
-            this.updateFraction(videoDataResponse.getId(),videoDataResponse.getVideoStats());
         }catch (Exception e){
             logger.error("",e);
         }
@@ -81,69 +82,14 @@ public class VideoServiceImpl implements VideoService {
     private VideoDataResponse getVideoDataInCache(Integer videoId){
         String data=redis.get(VIDEO_DATA_KEY(videoId));
         if(data==null) return null;
-        ObjectMapper mapper =new ObjectMapper();
         return redis.deserialize(data,mapper.constructType(VideoDataResponse.class));
     }
-
-
-    public void updateFraction(Integer videoId,VideoStats videoStats){
-        //更新缓存分数
-        if(videoStats!=null){
-            long fraction=videoStats.getView_count()+videoStats.getLike_count()+videoStats.getFavorite_count()
-                    +videoStats.getCoin_count()+RedisKeyConstant.VIDEO_INIT_FRACTION;
-            this.redis.zAdd(RedisKeyConstant.VIDEO_RANKING_KEY,fraction,RedisKeyConstant.VIDEO_RANKING_FIELD+videoId);
-            redis.hSet(RedisKeyConstant.VIDEO_RANK_LIFE_HASH_KEY,RedisKeyConstant.VIDEO_RANKING_FIELD+videoId,""+System.currentTimeMillis());
-        }
-    }
-
-
-
-    private void updateVideoCache(List<VideoDataResponse> videoDataResponses,Integer userId){
-        if(videoDataResponses==null || videoDataResponses.isEmpty()) return;
-
-        for(VideoDataResponse videoDataResponse : videoDataResponses){
-            this.setVideoDataInCache(videoDataResponse,userId);
-        }
-    }
-
 
     private VideoRecordForUser findRecord(Integer videoId,Integer userId) throws InterruptedException {
         return new VideoRecordForUser(
                 this.interactionService.hadCoin(userId,videoId),
                 this.interactionService.findFavoriteRecord(userId,videoId),
                 this.interactionService.findLikeRecord(userId,videoId));
-    }
-
-    private List<VideoDataResponse> findVideoDataOnDB(Integer userId, int offset){
-
-        Set<Integer> valueVideoId=new HashSet<>();
-        List<VideoDataResponse> videoDataResponses;
-
-        int offsetForNew=offset%2==0 ? offset/2 : (offset+1)/2;
-        int offsetForHot= offset%2==0 ? offsetForNew : offsetForNew-1;
-        int limit=LIMIT/2;
-
-        videoDataResponses=userId !=null ? this.videoDao.findVideosByUserId(userId,offsetForNew,limit,false)
-                : this.videoDao.findVideos(offsetForNew,limit,false);
-        if(videoDataResponses==null || videoDataResponses.isEmpty()) return null;
-
-        videoDataResponses.addAll(
-                userId!=null ? this.videoDao.findVideosByUserId(userId,offsetForHot,limit,true)
-                        : this.videoDao.findVideos(offsetForHot,limit,true)
-        );
-
-        List<VideoDataResponse> valueVideoData=new ArrayList<>();
-
-        for(VideoDataResponse videoDataResponse : videoDataResponses){
-            boolean stats=valueVideoId.add(videoDataResponse.getId());
-            if(stats) valueVideoData.add(videoDataResponse);
-            UserResponse userResponse=videoDataResponse.getAuthor();
-            if(userResponse!=null && userId!=null){
-                if(userId.equals(userResponse.getId())) userResponse.setUserRelation(null);
-            }
-        }
-
-        return valueVideoData;
     }
 
     private VideoDataResponse findVideoDataOnDB(Integer videoId,Integer userId){
@@ -158,35 +104,6 @@ public class VideoServiceImpl implements VideoService {
         return videoResponseData;
     }
 
-
-    private VideoDataResponse fineVideoResponseDataOnCache(String videoField,String userField) throws InterruptedException {
-        Integer userId = userField != null ? Integer.parseInt(userField) : null;
-        Integer videoId=Integer.parseInt(videoField);
-        VideoDataResponse dataResponse = this.getVideoDataInCache(videoId);
-
-        if(dataResponse!=null){
-            if(dataResponse.getVideoStats()==null){
-                VideoStats videoStats= this.videoStatsService.getVideoStats(videoId);
-                dataResponse.setVideoStats(videoStats);
-            }
-            UserResponse userResponse =dataResponse.getAuthor();
-            if(userResponse==null){
-                dataResponse.setAuthor(this.userDataService.getUserResponseData(dataResponse.getAuthorId()));
-            }
-            if(userId!=null){
-                if(userResponse!=null)
-                    userResponse.setUserRelation(
-                            userId.equals(userResponse.getId()) ? null :
-                            new UserRelation(this.interactionService.findRelation(userId,userResponse.getId()))
-                    );
-                dataResponse.setVideoRecordForUser(this.findRecord(videoId,userId));
-            }
-
-            return dataResponse;
-        }
-
-        return this.findVideoDataOnDB(videoId, userId);
-    }
 
     private VideoDataResponse findVideoDataOnCache(Integer videoId,Integer userId) throws InterruptedException {
         VideoDataResponse data= this.getVideoDataInCache(videoId);
@@ -214,36 +131,20 @@ public class VideoServiceImpl implements VideoService {
 
             return data;
         }else {
+            Boolean isLock=redis.setIfAbsent(VIDEO_DATA_LOCK(videoId),"lock",RedisKeyConstant.EXPIRED);
+            if(isLock!=null && !isLock) {
+                return this.findVideoDataOnCache(videoId,userId);
+            }
             return this.findVideoDataOnDB(videoId,userId);
         }
     }
 
-    private List<VideoDataResponse> findVideoDataOnCache(Integer userId,int offset) throws InterruptedException {
-        int offsetForNew=offset%2==0 ? offset/2 : (offset+1)/2;
-        int offsetForHot= offset%2==0 ? offsetForNew : offsetForNew-1;
-        int limit=LIMIT/2;
 
-        Set<Object> videoIds;
-        videoIds=this.redis.zRange(RedisKeyConstant.VIDEO_RANKING_KEY,offsetForNew,offsetForNew+limit-1);
-        if(videoIds==null || videoIds.isEmpty()) return null;
-        Set<Object> ids=this.redis.zRevRange(RedisKeyConstant.VIDEO_RANKING_KEY,offsetForHot,offsetForHot+limit-1);
-        videoIds.addAll(ids);
-
-        List<VideoDataResponse> videoDataResponses=new ArrayList<>();
-        for(Object videoId : videoIds){
-            videoDataResponses.add(this.fineVideoResponseDataOnCache(videoId.toString(),userId!=null ? userId.toString() : null));
-        }
-
-        return videoDataResponses;
-    }
-
-    //这里可以使用异步
     private void setVideoClipDataInCache(Integer videoId,List<VideoClipsResponse> clipsResponses,boolean quality){
         if(videoId==null || clipsResponses==null) return;
         Map<String, Object> videoClips = new HashMap<>();
         for (VideoClipsResponse clipsResponse : clipsResponses) {
             try{
-                ObjectMapper mapper=new ObjectMapper();
                 String data=mapper.writeValueAsString(clipsResponse);
                 videoClips.put("" + clipsResponse.getVideo_index(), data);
             }catch(Exception e){
@@ -270,7 +171,6 @@ public class VideoServiceImpl implements VideoService {
             clips.add(""+i);
         }
         List<Object> videoClips= this.redis.hmGet(quality ? VIDEO_CLIPS_HEIGHT_HASH_KEY(videoId) : VIDEO_CLIPS_LOW_HASH_KEY(videoId),clips);
-        ObjectMapper mapper=new ObjectMapper();
         List<VideoClipsResponse> videoClipsResponses=new ArrayList<>();
         for(Object videoClip : videoClips){
             if(videoClip!=null){
@@ -284,22 +184,19 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     public List<VideoDataResponse> videoRecommendationsByRandom(Integer userId, int offset) throws InterruptedException {
-        List<VideoDataResponse> videoDataResponses ;
+        List<String> videoIds=videoFractionStatsService.getVideoId(offset,offset+LIMIT);
+        if(videoIds==null || videoIds.isEmpty()) return null;
 
-        if(videoFractionStatsService.sizeForFraction()<=offset){
-            Boolean isLock=redis.setIfAbsent(this.VIDEO_LOCK_BY_OFFSET(offset),
-                    RedisKeyConstant.LOCK_VALUE,RedisKeyConstant.EXPIRED);
-            if(!isLock){
-                Thread.sleep(RedisKeyConstant.EXPIRED);
-                videoDataResponses=this.findVideoDataOnCache(userId,offset);
-                if(videoDataResponses!=null) return videoDataResponses;
+        List<VideoDataResponse> videoDataResponses =new ArrayList<>();
+
+        for(String id : videoIds){
+            VideoDataResponse dataResponse= this.findVideoDataOnCache(Integer.parseInt(id),userId);
+            if(dataResponse!=null){
+                videoDataResponses.add(dataResponse);
             }
-            videoDataResponses= this.findVideoDataOnDB(null,offset);
-            this.updateVideoCache(videoDataResponses,null);
+        }
 
-            return videoDataResponses;
-        }else
-            return this.findVideoDataOnCache(null,offset);
+        return videoDataResponses;
     }
 
     public List<VideoDataResponse> videoRecommendationsByRandom(int offset) throws InterruptedException{
@@ -308,23 +205,19 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     public List<VideoDataResponse> videoRecommendationsByCategory(Integer userId, VideoCategory category, int offset) throws InterruptedException {
-        int offsetForNew= offset % 2 ==0 ? offset/2 : (offset+1)/2;
-        int offsetForHot= offset % 2 ==0 ? offsetForNew : offsetForNew-1;
-        int limit =LIMIT/2;
+         List<String> videoIds=videoFractionStatsService.getVideoId(category.getName(),offset,offset+LIMIT);
+         if(videoIds==null || videoIds.isEmpty()) return null;
 
-        List<Integer> videos;
-        videos=this.videoDao.findVideosIdsByCategory(category.getName(),offsetForNew,limit,false);
-        if(videos!=null && !videos.isEmpty()) videos.addAll(this.videoDao.findVideosIdsByCategory(category.getName(),offsetForHot,limit,true));
+        List<VideoDataResponse> videoDataResponses =new ArrayList<>();
 
-        if(videos==null || videos.isEmpty()) return null;
-        Set<Integer> ids = new HashSet<>(videos);
-
-        List<VideoDataResponse> dataResponses =new ArrayList<>();
-        for(Integer id : ids){
-            VideoDataResponse videoDataResponse =this.findVideoDataOnCache(id,userId);
-            if(videoDataResponse!=null) dataResponses.add(videoDataResponse);
+        for(String id : videoIds){
+            VideoDataResponse dataResponse= this.findVideoDataOnCache(Integer.parseInt(id),userId);
+            if(dataResponse!=null){
+                videoDataResponses.add(dataResponse);
+            }
         }
-        return dataResponses;
+
+        return videoDataResponses;
     }
 
     public List<VideoDataResponse> videoRecommendationsByCategory(VideoCategory category, int offset) throws InterruptedException{
@@ -344,12 +237,12 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public List<VideoDataResponse> getMaxHotVideoData() {
         try{
-            Set<Object> videoIds= redis.zRange(RedisKeyConstant.VIDEO_RANKING_KEY,0,MAX_HOT_VIDEO_SIZE-1);
+            List<String> videoIds= videoFractionStatsService.getVideoId(0,MAX_HOT_VIDEO_SIZE);
             if(videoIds==null || videoIds.isEmpty()) return null;
 
             List<VideoDataResponse> videoDataResponses=new ArrayList<>();
-            for(Object videoId : videoIds){
-                VideoDataResponse dataResponse= this.fineVideoResponseDataOnCache(videoId.toString(),null);
+            for(String videoId : videoIds){
+                VideoDataResponse dataResponse= this.findVideoDataOnCache(Integer.parseInt(videoId),null);
                 if(dataResponse!=null) videoDataResponses.add(dataResponse);
             }
 

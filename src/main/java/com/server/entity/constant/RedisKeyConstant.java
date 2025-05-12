@@ -51,6 +51,7 @@ public class RedisKeyConstant {
     public static final String VIDEO_DATA_KEY="video_data:";
     public static final String VIDEO_CLIPS_DATA_KEY="video_clips_data:";
     public static final String USER_DATA_KEY="user_data:";
+    public static final String FIND_VIDEO_DATA_LOCK="find_video_data_lock:";
 
     public static final String VIDEO_LOCK_BY_OFFSET="video_lock_by_offset:";
     public static final String USER_LOCK="user_data_lock:";

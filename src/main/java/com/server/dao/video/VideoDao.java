@@ -15,7 +15,7 @@ public interface VideoDao {
     Integer findVideoClipCount(@Param("videoId") Integer videoId);
     void updateReviewStatus(@Param("videoId") Integer videoId,@Param("stats") boolean stats);
     VideoDataResponse findVideoData(@Param("id") Integer id,@Nullable @Param("userId") Integer userId);
-    List<VideoDataResponse> findVideos(@Param("offset") int offset,@Param("limit") int limit,@Param("isHot") boolean isHot); //没有userId不需要查询用户交互情况
+    List<VideoDataResponse> findVideos(@Param("offset") int offset,@Param("limit") int limit,@Param("isHot") boolean isHot);
     List<VideoDataResponse> findVideosByUserId(@Nullable @Param("userId") Integer userId,@Param("offset") int offset,@Param("limit") int limit,@Param("isHot") boolean isHot);//
     List<Integer> findVideosIdsByCategory(@Param("category") String category ,@Param("offset") int offset,@Param("limit") int limit,@Param("isHot") boolean isHot);
 
@@ -37,4 +37,6 @@ public interface VideoDao {
 
     @Select("select * from video where id =#{id}")
     Video findVideoById(@Param("id") Integer id);
+
+    List<VideoDataResponse> findVideoByCategory(@Param("limit") int limit,@Param("isHot") boolean isHot);
 }

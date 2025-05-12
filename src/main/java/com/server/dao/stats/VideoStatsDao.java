@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+
 public interface VideoStatsDao {
     @Insert("insert into video_stats (video_id) values (#{videoId})")
     void createVideoStatsTable(@Param("videoId") Integer videoId);
