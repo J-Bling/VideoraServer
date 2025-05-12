@@ -32,6 +32,7 @@
         <result property="created" column="created"/>
         <result property="updated" column="updated"/>
         <result property="authorId" column="author"/>
+        <result property="review_status" column="review_status"/>
 
         <association property="videoStats" javaType="com.server.entity.video.VideoStats">
             <id property="video_id" column="vs_video_id"/>

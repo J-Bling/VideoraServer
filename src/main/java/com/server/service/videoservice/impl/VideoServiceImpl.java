@@ -344,7 +344,7 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public List<VideoDataResponse> getMaxHotVideoData() {
         try{
-            Set<Object> videoIds= redis.zRange(RedisKeyConstant.VIDEO_RANKING_KEY,0,MAX_HOT_VIDEO_SIZE);
+            Set<Object> videoIds= redis.zRange(RedisKeyConstant.VIDEO_RANKING_KEY,0,MAX_HOT_VIDEO_SIZE-1);
             if(videoIds==null || videoIds.isEmpty()) return null;
 
             List<VideoDataResponse> videoDataResponses=new ArrayList<>();
