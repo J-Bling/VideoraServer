@@ -9,11 +9,12 @@ import com.server.util.redis.RedisUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.DefaultTypedTuple;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.util.*;
 
 @Service
@@ -37,25 +38,26 @@ public class VideoFractionStatsServiceImpl implements VideoFractionStatsService 
                 + videoStats.getCoin_count() *4.0;
     }
 
-    @PostConstruct
+
     @Override
     public void init(){
         try{
             Map<Integer,Double> fraction = new HashMap<>();
             Set<ZSetOperations.TypedTuple<Object>> fractionSet = new HashSet<>();
 
-            List<VideoDataResponse> videoDataResponses = videoDao.findVideoByCategory(MAX_VIDEO_RANK_SIZE,true);
+            List<VideoDataResponse> videoDataResponses = videoDao.findVideo(MAX_VIDEO_RANK_SIZE,true);
             if(videoDataResponses==null || videoDataResponses.isEmpty()) return ;
-            videoDataResponses.addAll(videoDao.findVideoByCategory(MAX_VIDEO_RANK_SIZE,false));
+            videoDataResponses.addAll(videoDao.findVideo(MAX_VIDEO_RANK_SIZE,false));
 
             Map<String, Set<ZSetOperations.TypedTuple<Object>>> categoryForVideoId=new HashMap<>();
 
             for(VideoDataResponse videoDataResponse : videoDataResponses){
                 Integer videoId =videoDataResponse.getVideoStats().getVideo_id();
-                if(fraction.get(videoId)!=null){
+                if(fraction.get(videoId)==null){
                     fraction.put(videoId,0.0);
-                    Double f = computedFraction(videoDataResponse.getVideoStats());
-                    ZSetOperations.TypedTuple<Object> typedTuple=new DefaultTypedTuple<>(videoId,f);
+                    double f = computedFraction(videoDataResponse.getVideoStats());
+                    f=f >0 ? f : 1000.0;
+                    ZSetOperations.TypedTuple<Object> typedTuple=new DefaultTypedTuple<>(videoId.toString(),f);
 
                     fractionSet.add(typedTuple);
                     Set<ZSetOperations.TypedTuple<Object>> typedTuples = categoryForVideoId.computeIfAbsent(
@@ -82,7 +84,7 @@ public class VideoFractionStatsServiceImpl implements VideoFractionStatsService 
 
 
         }catch (Exception e){
-            logger.error("VideoFractionStatsServiceImpl.init fail : {}",e.getMessage());
+            logger.error("VideoFractionStatsServiceImpl.init fail : {}",e.getMessage(),e);
         }
     }
 

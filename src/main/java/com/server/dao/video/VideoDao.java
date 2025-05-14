@@ -38,5 +38,5 @@ public interface VideoDao {
     @Select("select * from video where id =#{id}")
     Video findVideoById(@Param("id") Integer id);
 
-    List<VideoDataResponse> findVideoByCategory(@Param("limit") int limit,@Param("isHot") boolean isHot);
+    List<VideoDataResponse> findVideo(@Param("limit") int limit,@Param("isHot") boolean isHot);
 }

@@ -427,6 +427,12 @@ public class NotificationHandlerImpl implements NotificationHandler {
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
         //处理来自底层ws消息传输的错误
+        String userId= session.getAttributes().get(WebConstant.WEBSOCKET_USER_ID).toString();
+        if(userId!=null){
+            onlineUsers.remove(userId);
+            userActivity.put(userId, System.currentTimeMillis() + RedisKeyConstant.USER_ACTIVATE_FILE);
+        }
+        session.close();
         logger.error("传输发生错误 userId:{}, sessionId:{}, 原因: {}",
                 session.getAttributes().get(WebConstant.WEBSOCKET_USER_ID),
                 session.getId(),

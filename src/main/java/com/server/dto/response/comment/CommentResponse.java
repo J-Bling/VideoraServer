@@ -9,6 +9,7 @@ import lombok.ToString;
 import java.sql.Timestamp;
 
 @Data
+@JsonIgnoreProperties({"lock", "LOCK"})
 public class CommentResponse {
     private Integer id;
     private Integer video_id;

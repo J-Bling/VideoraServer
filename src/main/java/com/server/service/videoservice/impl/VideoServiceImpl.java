@@ -41,14 +41,11 @@ public class VideoServiceImpl implements VideoService {
 
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private static final int LIMIT=10;
+    private static final int LIMIT=16;
     private static final int CLIPS_COUNT_LIMIT=20;
     private static final int MAX_HOT_VIDEO_SIZE=5;
     private final Logger logger= LoggerFactory.getLogger(VideoServiceImpl.class);
 
-    private String VIDEO_LOCK_BY_OFFSET(int offset){
-        return RedisKeyConstant.VIDEO_LOCK_BY_OFFSET+offset;
-    }
     private String VIDEO_DATA_KEY(Integer videoId){
         return RedisKeyConstant.VIDEO_DATA_KEY+videoId;
     }

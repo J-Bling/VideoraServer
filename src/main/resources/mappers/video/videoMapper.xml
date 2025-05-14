@@ -130,6 +130,7 @@
         SELECT
         v.id AS video_id,
         v.*,
+        vs.video_id AS vs_video_id,
         vs.*,
         u.id AS user_id,
         u.nickname,
@@ -256,9 +257,11 @@
     </select>
 
 
-    <select id="fineVideoByCategory" resultMap="videoDataResponseMap">
+    <select id="findVideo" resultMap="videoDataResponseMap">
         select
-        v.category
+        v.id AS video_id,
+        v.category,
+        vs.video_id AS vs_video_id,
         vs.*
         from video v
         left join video_stats vs

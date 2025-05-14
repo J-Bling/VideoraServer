@@ -70,7 +70,11 @@ public class CommentController {
         try{
             int userId=Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
             this.commentService.createComment(commentRequest,userId);
-            if(commentRequest.getParent_id()!=null && commentRequest.getParent_id()>0 && commentRequest.getAuthor_id()!=null){
+            if(commentRequest.getParent_id()!=null
+                    && commentRequest.getParent_id()>0
+                    && commentRequest.getAuthor_id()!=null
+                    && !commentRequest.getAuthor_id().equals(userId)
+            ){
                 notificationService.commentToCommentNotices(userId,commentRequest.getAuthor_id(),commentRequest.getParent_id());
             }
             return Result.Ok("succeed");
