@@ -6,6 +6,9 @@ import com.server.dto.response.comment.CommentResponse;
 
 import java.util.List;
 
+/**
+ * 废弃接口
+ */
 public interface CommentService {
 
     List<CommentResponse> getVideoComments(int videoId,int userId,int offset,int limit,boolean isHot);

@@ -17,7 +17,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import javax.sql.DataSource;
 
 @Configuration
-@MapperScan(basePackages = {"com.server.dao"})
+@MapperScan(basePackages = {"com.server.dao","com.server.comment.dao"})
 public class MysqlDataSourceConfig {
 
     @Bean(name = "mysqlDataSource")

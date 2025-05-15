@@ -1,8 +1,8 @@
 package com.server.push.service.impl;
 
+import com.server.comment.entity.Comment;
 import com.server.dao.notification.NotificationDao;
 import com.server.dao.record.RecordDao;
-import com.server.dto.response.comment.CommentResponse;
 import com.server.dto.response.user.UserResponse;
 import com.server.dto.response.video.VideoDataResponse;
 import com.server.push.dto.request.NotificationForComment;
@@ -12,7 +12,7 @@ import com.server.push.entity.Notification;
 import com.server.push.enums.NotificationCode;
 import com.server.push.handle.NotificationHandleProxy;
 import com.server.push.service.NotificationService;
-import com.server.service.commentservice.CommentService;
+import com.server.comment.server.CommentService;
 import com.server.service.userservice.UserDataService;
 import com.server.service.videoservice.VideoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,19 +28,19 @@ public class NotificationServiceImpl implements NotificationService {
     @Autowired private NotificationHandleProxy proxy;
     @Autowired private RecordDao recordDao;
     @Autowired private VideoService videoService;
-    @Autowired private CommentService commentService;
     @Autowired private UserDataService userDataService;
     @Autowired private NotificationDao notificationDao;
+    @Autowired private CommentService commentService;
 
 
     public static final ConcurrentLinkedQueue<String> UNREAD_NOTIFICATIONS=new ConcurrentLinkedQueue<>();
 
-    private Map<Integer,List<Notification>> classifyForTagId(List<Notification> notifications){
+    private Map<String,List<Notification>> classifyForTagId(List<Notification> notifications){
         if(notifications==null || notifications.isEmpty()) return null;
-        Map<Integer,List<Notification>> classify = new HashMap<>();
+        Map<String,List<Notification>> classify = new HashMap<>();
 
         for(Notification notification : notifications){
-            classify.computeIfAbsent(notification.getTag_id(),k->new ArrayList<>()).add(notification);
+            classify.computeIfAbsent(notification.getTag_id().toString(),k->new ArrayList<>()).add(notification);
         }
 
         return classify;
@@ -50,13 +50,13 @@ public class NotificationServiceImpl implements NotificationService {
     public List<NotificationForVideoResponse> getLikeVideoNotification(Integer userId, int offset)
             throws InterruptedException {
         List<Notification> notificationList= proxy.findHistoryNotifications(userId,NotificationCode.LIKED_FOR_VIDEO,offset);
-        Map<Integer,List<Notification>> notificationMapList= classifyForTagId(notificationList);
+        Map<String,List<Notification>> notificationMapList= classifyForTagId(notificationList);
 
         if(notificationMapList==null) return null;
 
         List<NotificationForVideoResponse> notificationForVideoResponses = new ArrayList<>();
-        for(Map.Entry<Integer,List<Notification>> notificationEntry : notificationMapList.entrySet()){
-            Integer videoId = notificationEntry.getKey();
+        for(Map.Entry<String,List<Notification>> notificationEntry : notificationMapList.entrySet()){
+            Integer videoId = Integer.parseInt(notificationEntry.getKey());
             List<Notification> notifications = notificationEntry.getValue();
 
             VideoDataResponse videoDataResponse= videoService.getVideoResponseData(videoId,null);
@@ -84,16 +84,16 @@ public class NotificationServiceImpl implements NotificationService {
     private List<NotificationForComment> getCommentInteractionNotification(Integer userId,int offset,NotificationCode code)
             throws InterruptedException {
         List<Notification> notificationList = proxy.findHistoryNotifications(userId,code,offset);
-        Map<Integer,List<Notification>> notificationCommentMap=classifyForTagId(notificationList);
+        Map<String,List<Notification>> notificationCommentMap=classifyForTagId(notificationList);
 
         if(notificationList==null) return null;
 
         List<NotificationForComment> notificationForCommentList = new ArrayList<>();
-        for(Map.Entry<Integer,List<Notification>> notificationEntry : notificationCommentMap.entrySet()){
-            Integer commentId = notificationEntry.getKey();
+        for(Map.Entry<String,List<Notification>> notificationEntry : notificationCommentMap.entrySet()){
+            String commentId = notificationEntry.getKey();
             List<Notification> notifications = notificationEntry.getValue();
 
-            CommentResponse comment= commentService.getPublicCommentByRedis(commentId);
+            Comment comment= commentService.getCommentOnCache(commentId);
             if(comment==null) continue;
 
             VideoDataResponse video = videoService.getVideoResponseData(comment.getVideo_id(),null);
@@ -163,7 +163,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void likeToCommentNotices(Integer myId, Integer authorId, Integer commentId) {
+    public void likeToCommentNotices(Integer myId, Integer authorId, String commentId) {
         Notification notification = Notification.builder()
                 .messageId(UUID.randomUUID().toString())
                 .userId(authorId)
@@ -179,7 +179,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void commentToCommentNotices(Integer myId, Integer authorId, Integer commentId) {
+    public void commentToCommentNotices(Integer myId, Integer authorId, String commentId) {
         Notification notification = Notification.builder()
                 .messageId(UUID.randomUUID().toString())
                 .userId(authorId)

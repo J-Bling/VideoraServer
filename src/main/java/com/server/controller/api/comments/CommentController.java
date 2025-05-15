@@ -1,14 +1,12 @@
 package com.server.controller.api.comments;
 
-import com.server.dto.request.comment.CommentRequest;
-import com.server.dto.request.comment.CommentUserActionRequest;
+import com.server.comment.dto.request.CreateCommentRequest;
+import com.server.comment.server.CommentService;
 import com.server.dto.response.Result;
 import com.server.entity.constant.WebConstant;
 import com.server.enums.ErrorCode;
 import com.server.exception.ApiException;
 import com.server.push.service.NotificationService;
-import com.server.service.commentservice.CommentService;
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,108 +20,137 @@ import javax.servlet.http.HttpServletRequest;
 @RequestMapping("/api/comments")
 @Tag(name = "comment 访问 创建 互动")
 public class CommentController {
-    @Autowired
-    private CommentService commentService;
+    @Autowired private CommentService commentService;
+    @Autowired private NotificationService notificationService;
 
-    @Autowired
-    private NotificationService notificationService;
+    private final Logger logger = LoggerFactory.getLogger(CommentController.class);
 
-    private static final int LIMIT=20;
-    private final Logger logger= LoggerFactory.getLogger(CommentController.class);
-
-    @GetMapping("/video-comments/{videoId}/{offset}/{isHot}")
-    @Operation(summary = "请求视频下第一级评论" ,description = "默认limit为20,isHo 为true")
-    public ResponseEntity<Result> getVideoComments(@PathVariable("videoId") int videoId,
-                                                   @PathVariable("offset") Integer offset,
-                                                   @PathVariable("isHot") Integer isHot,
-                                                   HttpServletRequest request){
-        try{
-            int userId=Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
-            return Result.Ok(this.commentService.getVideoComments(videoId,userId,
-                    (offset!=null?offset:0),LIMIT,!isHot.equals(0)));
-        }catch (Exception e){
-            logger.error("getVideoComments fail reason is {}",e.getMessage(),e);
-            return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
-        }
+    private Integer getUserId(HttpServletRequest request){
+        return Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
     }
 
-    @GetMapping("/reply-comments/{rootId}/{parentId}/{offset}/{isHot}")
-    @Operation(summary = "获取下一级回复评论 ")
-    public ResponseEntity<Result> getReplyComments(HttpServletRequest request,
-                                                   @PathVariable("rootId") Integer rootId,
-                                                   @PathVariable("parentId") Integer parentId,
-                                                   @PathVariable("offset") Integer offset,
-                                                   @PathVariable("isHot") Integer isHot){
+    @PostMapping("/create")
+    public ResponseEntity<Result> createComment(HttpServletRequest request, @RequestBody CreateCommentRequest commentRequest){
         try{
-            int userId=Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
-            return Result.Ok(this.commentService.getReplyComments(rootId,parentId,userId,
-                    (offset!=null?offset:0),LIMIT,!isHot.equals(0)));
-        }catch (Exception e){
-            logger.error("getReplyComments fail reason is  {}",e.getMessage(),e);
-            return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
-        }
-    }
-
-    @PostMapping("/create-comment")
-    @Operation(summary = "创建评论或者回复")
-    public ResponseEntity<Result> publishComment(HttpServletRequest request, @RequestBody CommentRequest commentRequest){
-        try{
-            int userId=Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
-            this.commentService.createComment(commentRequest,userId);
-            if(commentRequest.getParent_id()!=null
-                    && commentRequest.getParent_id()>0
-                    && commentRequest.getAuthor_id()!=null
-                    && !commentRequest.getAuthor_id().equals(userId)
-            ){
-                notificationService.commentToCommentNotices(userId,commentRequest.getAuthor_id(),commentRequest.getParent_id());
+            Integer userId = this.getUserId(request);
+            String commentId = commentService.createComment(commentRequest,userId);
+            if(commentRequest.getRoot_id() !=null && commentRequest.getParent_id()!=null && commentRequest.getTargetId()!=null) {
+                notificationService.commentToCommentNotices(userId,commentRequest.getTargetId(),commentId);
             }
-            return Result.Ok("succeed");
-
+            return Result.Ok(1);
         }catch (ApiException apiException){
             return Result.ErrorResult(apiException.getErrorCode(),0);
         }catch (Exception e){
-            logger.error("publishComment fail reason is {}",e.getMessage(),e);
+            logger.error(e.getMessage());
             return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
         }
     }
 
-    @DeleteMapping("/delete-comment/{commentId}/{videoId}/{parentId}")
-    @Operation(summary = "删除评论")
-    public ResponseEntity<Result> deleteComment(HttpServletRequest request ,
-                                                @PathVariable("commentId") int commentId,
-                                                @PathVariable("videoId") int videoId,
-                                                @PathVariable("rootId") int rootId,
-                                                @PathVariable("parentId") int parentId){
+
+    @GetMapping("/video-comments/{videoId}/{offset}")
+    public ResponseEntity<Result> getCommentsByVideoId(
+            HttpServletRequest request,@PathVariable("videoId") int videoId,
+            @PathVariable("offset") int offset
+    ){
         try{
-            int userId=(int) request.getAttribute("id");
-            this.commentService.deleteComment(commentId,videoId,rootId,parentId,userId);
-            return Result.Ok("succeed");
+            Integer userId = getUserId(request);
+            return Result.Ok(commentService.getCommentsByVideoId(videoId,offset,userId));
         }catch (ApiException apiException){
             return Result.ErrorResult(apiException.getErrorCode(),0);
         }catch (Exception e){
-            logger.error("delete comment fail reason is {}",e.getMessage(),e);
+            logger.error(e.getMessage());
             return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
         }
     }
 
-    @PutMapping("/handle-comment-action")
-    @Operation(summary = "互动评论",description = "可以进行取消互动和 点赞 点踩 user_id可以为null")
-    public ResponseEntity<Result> handleCommentAction(HttpServletRequest request,
-                                                      @RequestBody CommentUserActionRequest commentUserActionRequest){
+    @GetMapping("/video-comments-hot/{videoId}/{offset}")
+    public ResponseEntity<Result> getCommentByVideoWithScore(HttpServletRequest request,@PathVariable("videoId") int videoId,
+                                                             @PathVariable("offset") int offset){
         try{
-            int userId=Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
-            commentUserActionRequest.setUser_id(userId);
-            this.commentService.handleAction(commentUserActionRequest);
-            if(commentUserActionRequest.getAction_type())
-                notificationService.likeToCommentNotices(userId,commentUserActionRequest.getAuthorId(),commentUserActionRequest.getComment_id());
-            return Result.Ok("succeed");
-
+            Integer userId = getUserId(request);
+            return Result.Ok(commentService.getCommentByVideoWithScore(videoId,userId,offset));
         }catch (ApiException apiException){
             return Result.ErrorResult(apiException.getErrorCode(),0);
         }catch (Exception e){
-            logger.error("handle comment action fail  reason is {}",e.getMessage(),e);
+            logger.error(e.getMessage());
             return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
         }
     }
 
+
+    @GetMapping("/reply-comments/{videoId}/{rootId}/{offset}")
+    public ResponseEntity<Result> getReplyByVideoId(HttpServletRequest request,
+                                                    @PathVariable("videoId") int videoId,
+                                                    @PathVariable("rootId") String rootId,
+                                                    @PathVariable("offset") int offset){
+        try{
+            return Result.Ok(commentService.getReplyByVideoId(videoId,rootId,getUserId(request),offset));
+        }catch (ApiException apiException){
+            return Result.ErrorResult(apiException.getErrorCode(),0);
+        }catch (Exception e){
+            logger.error(e.getMessage());
+            return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
+        }
+    }
+
+
+    @GetMapping("/like/{commentId}/{videoId}/{targetId}")
+    public ResponseEntity<Result> like(
+            HttpServletRequest request,
+            @PathVariable("commentId") String commentId,
+            @PathVariable("videoId") int videoId,
+            @PathVariable("targetId") Integer targetId
+    )
+    {
+        try {
+                if(commentId==null) return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
+                Integer userId = getUserId(request);
+                boolean status =commentService.like(commentId,userId,videoId);
+                if(status) {
+                    if(targetId!=null) notificationService.likeToCommentNotices(userId,targetId,commentId);
+                    return Result.Ok(1);
+                }
+
+                return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
+        } catch (ApiException apiException) {
+            return Result.ErrorResult(apiException.getErrorCode(), 0);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR, 0);
+        }
+    }
+
+    @GetMapping("/dislike/{commentId}/{videoId}")
+    public ResponseEntity<Result> dislike(HttpServletRequest request,
+                                          @PathVariable("commentI") String commentId,
+                                          @PathVariable("videoId") int videoId) {
+        try {
+            if (commentId == null) return Result.ErrorResult(ErrorCode.BAD_REQUEST, 0);
+            return commentService.disLike(commentId, getUserId(request), videoId)
+                    ? Result.Ok(1)
+                    : Result.ErrorResult(ErrorCode.BAD_REQUEST, 0);
+        } catch (ApiException apiException) {
+            return Result.ErrorResult(apiException.getErrorCode(), 0);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR, 0);
+        }
+    }
+
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<Result> deleteComment(HttpServletRequest request,
+                                                @PathVariable("commentI") String commentId,
+                                                @PathVariable("videoId") int videoId){
+        try{
+            if (commentId == null) return Result.ErrorResult(ErrorCode.BAD_REQUEST, 0);
+            commentService.deleteComment(commentId,getUserId(request),videoId);
+            return Result.Ok(1);
+        }catch (ApiException apiException) {
+            return Result.ErrorResult(apiException.getErrorCode(), 0);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR, 0);
+        }
+    }
 }

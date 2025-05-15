@@ -46,14 +46,11 @@ public class RedisKeyConstant {
 
 
     public static final String VIDEO_RANKING_KEY="video_rank:";
-    public static final String VIDEO_RANK_LIFE_HASH_KEY="video_rank_life:";
-    public static final String VIDEO_RANKING_FIELD="";
     public static final String VIDEO_DATA_KEY="video_data:";
     public static final String VIDEO_CLIPS_DATA_KEY="video_clips_data:";
     public static final String USER_DATA_KEY="user_data:";
     public static final String FIND_VIDEO_DATA_LOCK="find_video_data_lock:";
 
-    public static final String VIDEO_LOCK_BY_OFFSET="video_lock_by_offset:";
     public static final String USER_LOCK="user_data_lock:";
 
     public static final String HISTORY_MESSAGE_LIST_KEY="history_list_messages:";
@@ -66,10 +63,27 @@ public class RedisKeyConstant {
 
     public static final String COMMENT_KEY="comment:";
 
+    public static final String COMMENT_VIDEO_OFFSET_LOCK="comment_v_o_lock:";
+    public static final String COMMENT_REPLY_OFFSET_LOCK="comment_r_o_lock:";
+    public static final String COMMENT_INSERT_LIST_KEY="comment_insert";
+    public static final String COMMENT_SCORE_RANK="comment_rank:";
+    public static final String COMMENT_FOR_VIDEO_LIST_KEY="comment_v_list:";
+    public static final String COMMENT_FOR_ROOT_LIST_KEY="comment_r_list:";
+    public static final String COMMENT_ACTION_KEY="comment_action:";
+    public static final long COMMENT_ALL_LIFT=64*60*60*1000;
+    public static final String COMMENT_STATS_HASH_KEY="comment_stats";
+    public static final String COMMENT_ACTION_INSERT_LIST_KEY="comment_a_i_list";
+    public static final String COMMENT_ACTION_DELETE_LIST_KEY="comment_a_d_list";
+    public static final String COMMENT_COUNT_UPDATE_HASH_KEY="comment_count_update";
+    public static final String COMMENT_STRING_KEY="comment_s:";
+
+
+
     public static final String NULL="NULL";
     public static final String NULL_RECORD="";
     public static final String NO="0";
     public static final String IS="1";
     public static final String LOCK_VALUE="1";
+    public static final String INTERVAL_NUMBER=":";
 }
 

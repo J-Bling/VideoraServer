@@ -12,8 +12,8 @@ public interface NotificationService {
         推送 实现是我对他人的操作 搜集数据  推送给他人
      */
     void likeToVideoNotices(Integer myId,Integer authorId,Integer videoId);
-    void likeToCommentNotices(Integer myId,Integer authorId,Integer commentId); //要定位
-    void commentToCommentNotices(Integer myId,Integer authorId,Integer commentId);
+    void likeToCommentNotices(Integer myId,Integer authorId,String commentId); //要定位
+    void commentToCommentNotices(Integer myId,Integer authorId,String commentId);
     void followToAuthorNotices(Integer myId,Integer authorId);
     void letterToOtherNotices(Integer myId,Integer otherId);
     void newDevelopmentToFunNotices(Integer myId,Integer videoId);

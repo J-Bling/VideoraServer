@@ -54,3 +54,10 @@ VIDEO_COVER_BASE_URL: /opt/homebrew/var/www/image/cover/
 VIDEO_FILE_BASE_URL: /opt/homebrew/var/www/media/hd/
 VIDEO_COMPRESS_FILE_BASE_URL: /opt/homebrew/var/www/media/sd/
 USER_AVATAR_BASE_URL: /opt/homebrew/var/www/image/avatar/
+
+
+# temp data
+TEMP_DATA_DIR: /Users/j/temp/
+TEMP_DATA_VIDEO_COMMENTS_KEY_RECORD:
+TEMP_DATA_REPLY_COMMENTS_KEY_RECORD:
+TEMP_DATA_VIDEO_COMMENTS_RANK_RECORD:

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.comment.CommentDao">
+
+    <resultMap id="CommentResponseMap" type="com.server.dto.response.comment.CommentResponse">
+        <id property="id" column="id"/>
+        <result property="root_id" column="root_id"/>
+        <result property="parent_id" column="parent_id"/>
+        <result property="reply_count" column="reply_count"/>
+        <result property="like_count" column="like_count"/>
+        <result property="dislike_count" column="dislike_count"/>
+        <result property="content" column="content"/>
+        <result property="created" column="created"/>
+        <association property="user" javaType="com.server.dto.response.user.UserResponse">
+            <id property="id" column="userId"/>
+            <result property="nickname" column="nickname"/>
+            <result property="gender" column="gender"/>
+            <result property="avatar_url" column="avatar_url"/>
+            <result property="description" column="description"/>
+        </association>
+        <association property="action" javaType="com.server.dto.response.comment.CommentUserActionResponse">
+            <result property="action_type" column="action_type"/>
+        </association>
+    </resultMap>
+
+    <select id="findVideoCommentsByVideoIdOnNew" resultMap="CommentResponseMap">
+        select c.id,c.video_id,c.root_id,c.parent_id,c.reply_count,c.like_count,dislike_count,
+        c.content,c.created,u.id as userId,u.nickname,u.gender,u.avatar_url,
+        u.description,a.action_type from comment c left join user u on c.user_id = u.id
+        left join comment_user_actions a on c.id=a.comment_id and a.user_id=#{userId}
+        where c.video_id=#{videoId} and root_id=0 and parent_id=0
+        order by c.created desc limit #{offset},#{limit}
+    </select>
+
+    <select id="findVideoCommentsByVideoIdOnHot" resultMap="CommentResponseMap">
+        select c.id,c.video_id,c.root_id,c.parent_id,c.reply_count,c.like_count,dislike_count,
+        c.content,c.created,u.id as userId,u.nickname,u.gender,u.avatar_url,
+        u.description,a.action_type from comment c left join user u on c.user_id = u.id
+        left join comment_user_actions a on c.id=a.comment_id and a.user_id=#{userId}
+        where c.video_id=#{videoId} root_id=0 and parent_id=0
+        order by c.like_count desc limit #{offset},#{limit}
+    </select>
+    
+    
+    <select id="findReplyCommentsByParentIdOnNew" resultMap="CommentResponseMap">
+        select c.id,c.video_id,c.root_id,c.parent_id,c.reply_count,c.like_count,dislike_count,
+        c.content,c.created,u.id as userId,u.nickname,u.gender,u.avatar_url,
+        u.description,a.action_type from comment c left join user u on c.user_id = u.id
+        left join comment_user_actions a on c.id=a.comment_id and a.user_id=#{userId}
+        where c.root_id=#{root_id} and c.parent_id=#{parent_id}
+        order by c.created desc limit #{offset},#{limit}
+    </select>
+
+    <select id="findReplyCommentsByParentIdOnHot" resultMap="CommentResponseMap">
+        select c.id,c.video_id,c.root_id,c.parent_id,c.reply_count,c.like_count,dislike_count,
+        c.content,c.created,u.id as userId,u.nickname,u.gender,u.avatar_url,
+        u.description,a.action_type from comment c left join user u on c.user_id = u.id
+        left join comment_user_actions a on c.id=a.comment_id and a.user_id=#{userId}
+        where c.root_id=#{root_id} and c.parent_id=#{parent_id}
+        order by c.like_count desc limit #{offset},#{limit}
+    </select>
+
+    <resultMap id="CommentPublicMap" type="com.server.dto.response.comment.CommentResponse">
+        <id property="id" column="id"/>
+        <result property="root_id" column="root_id"/>
+        <result property="parent_id" column="parent_id"/>
+        <result property="reply_count" column="reply_count"/>
+        <result property="like_count" column="like_count"/>
+        <result property="dislike_count" column="dislike_count"/>
+        <result property="content" column="content"/>
+        <result property="created" column="created"/>
+        <association property="user" javaType="com.server.dto.response.user.UserResponse">
+            <id property="id" column="userId"/>
+            <result property="nickname" column="nickname"/>
+            <result property="gender" column="gender"/>
+            <result property="avatar_url" column="avatar_url"/>
+            <result property="description" column="description"/>
+        </association>
+    </resultMap>
+    <select id="findPublicVideoComments" resultMap="CommentPublicMap">
+        select c.id,c.video_id,c.root_id,c.parent_id,c.reply_count,c.like_count,dislike_count,
+        c.content,c.created,u.id as userId,u.nickname,u.gender,u.avatar_url,
+        u.description from comment c left join user u on c.user_id=u.id
+        where c.video_id=#{videoId} and root_id=0 order by c.like_count desc limit #{offset},#{limit}
+    </select>
+
+    <select id="findPublicReplyComments" resultMap="CommentPublicMap">
+        select c.id,c.video_id,c.root_id,c.parent_id,c.reply_count,c.like_count,dislike_count,
+        c.content,c.created,u.id as userId,u.nickname,u.gender,u.avatar_url,
+        u.description from comment c left join user u on c.user_id=u.id
+        where c.root_id=#{rootId} and c.parent_id=#{parentId} order by c.like_count desc limit #{offset},#{limit}
+    </select>
+
+
+    <update id="updateBatchComments">
+        update comment set ${column} =${column} + case id
+        <foreach collection="tasks" item="task">
+            when #{task.targetId} then #{task.count}
+        </foreach>
+        end where id in
+        <foreach collection="tasks" item="task" open="(" close=")" separator=",">
+            #{task.targetId}
+        </foreach>
+    </update>
+
+    <select id="findPublicComments" resultType="com.server.dto.response.comment.CommentResponse">
+        select id,c.video_id,root_id,parent_id,reply_count,like_count,dislike_count,content,created from comment where id in
+        <foreach collection="commentIds" open="(" close=")" separator="," item="commentId">
+            #{commentId}
+        </foreach>
+    </select>
+</mapper>

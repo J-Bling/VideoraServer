@@ -6,7 +6,7 @@ public class Notification {
     private String message_id;
     private Integer user_id;
     private Integer target_id;
-    private Integer tag_id;
+    private Object tag_id;
     private String message;
     private Integer type;
     private Boolean is_read;
@@ -60,7 +60,7 @@ public class Notification {
             return this;
         }
 
-        public Builder tagId(Integer tag_id){
+        public Builder tagId(Object tag_id){
             notification.tag_id=tag_id;
             return this;
         }
