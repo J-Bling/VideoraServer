@@ -537,11 +537,12 @@ public class CommentServiceImpl implements CommentService, DisposableBean , Comm
      * @param logPrefix 日志前缀
      */
     private <K, V> void processFile(Path filePath, Map<K, V> targetMap, String logPrefix){
-
         try {
-            if (!Files.exists(filePath) || Files.size(filePath) <= 0) {
+            if (!Files.exists(filePath)) {
                 return;
             }
+
+            if(Files.size(filePath) <= 0) return;
 
             List<String> contents = Files.readAllLines(filePath);
             if (contents.isEmpty() || contents.get(0).isEmpty()) {
@@ -550,12 +551,13 @@ public class CommentServiceImpl implements CommentService, DisposableBean , Comm
 
             String content = contents.get(0);
             Map<K, V> dataMap = mapper.readValue(content, new TypeReference<Map<K, V>>() {});
+            if(dataMap.isEmpty()) return;
 
+            targetMap.clear();
             targetMap.putAll(dataMap);
 
-            Files.write(filePath, "".getBytes(StandardCharsets.UTF_8));
+            Files.write(filePath, "".getBytes(StandardCharsets.UTF_8),StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
 
-            logger.info("Successfully processed {} with {} entries", logPrefix, dataMap.size());
         } catch (JsonProcessingException e) {
             logger.error("JSON parsing error for {}: {}", logPrefix, e.getMessage());
         } catch (IOException e) {
@@ -565,19 +567,24 @@ public class CommentServiceImpl implements CommentService, DisposableBean , Comm
         }
     }
 
+    private String formatFileUrl(String originUrl,String expectationName){
+        if(originUrl==null || originUrl.length() <1){
+            return TEMP_DATA_DIR + expectationName;
+        }
+        return originUrl;
+    }
+
     @Override
     public void run(String... args) {
-        if(TEMP_DATA_DIR==null){
+        if(TEMP_DATA_DIR.isEmpty()){
             throw new RuntimeException("TEMP_DATA_DIR 目录不存在");
         }
-        TEMP_DATA_REPLY_COMMENTS_KEY_RECORD = TEMP_DATA_REPLY_COMMENTS_KEY_RECORD!=null
-                ? TEMP_DATA_REPLY_COMMENTS_KEY_RECORD : TEMP_DATA_DIR + "VIDEO_COMMENTS_KEY_RECORD.data";
-        TEMP_DATA_REPLY_COMMENTS_KEY_RECORD = TEMP_DATA_REPLY_COMMENTS_KEY_RECORD!=null
-                ? TEMP_DATA_REPLY_COMMENTS_KEY_RECORD : TEMP_DATA_DIR + "REPLY_COMMENTS_KEY_RECORD.data";
-        TEMP_DATA_VIDEO_COMMENTS_RANK_RECORD =TEMP_DATA_VIDEO_COMMENTS_RANK_RECORD!=null
-                ? TEMP_DATA_VIDEO_COMMENTS_RANK_RECORD : TEMP_DATA_DIR + "VIDEO_COMMENTS_RANK_RECORD.data";
+        TEMP_DATA_VIDEO_COMMENTS_KEY_RECORD = formatFileUrl(TEMP_DATA_VIDEO_COMMENTS_KEY_RECORD,"VIDEO_COMMENTS_KEY_RECORD.data");
+        TEMP_DATA_REPLY_COMMENTS_KEY_RECORD = formatFileUrl(TEMP_DATA_REPLY_COMMENTS_KEY_RECORD,"REPLY_COMMENTS_KEY_RECORD.data");
+        TEMP_DATA_VIDEO_COMMENTS_RANK_RECORD = formatFileUrl(TEMP_DATA_VIDEO_COMMENTS_RANK_RECORD,"VIDEO_COMMENTS_RANK_RECORD.data");
 
-        final Path videoCommentsKeyPath = Paths.get(TEMP_DATA_REPLY_COMMENTS_KEY_RECORD);
+
+        final Path videoCommentsKeyPath = Paths.get(TEMP_DATA_VIDEO_COMMENTS_KEY_RECORD);
         final Path replyCommentsKeyPath = Paths.get(TEMP_DATA_REPLY_COMMENTS_KEY_RECORD);
         final Path videoCommentsRankPath = Paths.get(TEMP_DATA_VIDEO_COMMENTS_RANK_RECORD);
 
@@ -589,9 +596,6 @@ public class CommentServiceImpl implements CommentService, DisposableBean , Comm
 
 
     private <k,v> void saveFile(Path filePath,Map<k,v> targetMap,String logPrefix){
-        if(TEMP_DATA_DIR==null) {
-            throw new RuntimeException("TEMP_DATA_DIR 目录不存在");
-        }
         try{
             if(!Files.exists(filePath)) return;
             String str = mapper.writeValueAsString(targetMap);
@@ -607,13 +611,13 @@ public class CommentServiceImpl implements CommentService, DisposableBean , Comm
 
     @Override
     public void destroy() throws Exception {
-        final Path videoCommentsKeyPath = Paths.get(TEMP_DATA_REPLY_COMMENTS_KEY_RECORD);
+        final Path videoCommentsKeyPath = Paths.get(TEMP_DATA_VIDEO_COMMENTS_KEY_RECORD);
         final Path replyCommentsKeyPath = Paths.get(TEMP_DATA_REPLY_COMMENTS_KEY_RECORD);
         final Path videoCommentsRankPath = Paths.get(TEMP_DATA_VIDEO_COMMENTS_RANK_RECORD);
 
-        processFile(videoCommentsKeyPath, VIDEO_COMMENTS_KEY_RECORD, "VIDEO_COMMENTS_KEY_RECORD.data");
-        processFile(replyCommentsKeyPath, REPLY_COMMENTS_KEY_RECORD, "REPLY_COMMENTS_KEY_RECORD.data");
-        processFile(videoCommentsRankPath, VIDEO_COMMENTS_RANK_RECORD, "VIDEO_COMMENTS_RANK_RECORD.data");
+        saveFile(videoCommentsKeyPath, VIDEO_COMMENTS_KEY_RECORD, "VIDEO_COMMENTS_KEY_RECORD.data");
+        saveFile(replyCommentsKeyPath, REPLY_COMMENTS_KEY_RECORD, "REPLY_COMMENTS_KEY_RECORD.data");
+        saveFile(videoCommentsRankPath, VIDEO_COMMENTS_RANK_RECORD, "VIDEO_COMMENTS_RANK_RECORD.data");
     }
 
 

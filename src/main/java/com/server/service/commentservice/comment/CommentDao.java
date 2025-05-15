@@ -1,4 +1,4 @@
-package com.server.dao.comment;
+package com.server.service.commentservice.comment;
 import com.server.dto.cache.StatsUpdateTask;
 import com.server.dto.response.comment.CommentResponse;
 import org.apache.ibatis.annotations.Delete;

@@ -1,4 +1,4 @@
-package com.server.dao.comment;
+package com.server.service.commentservice.comment;
 import com.server.dto.response.comment.CommentResponse;
 import com.server.entity.comment.CommentUserActions;
 import org.apache.ibatis.annotations.Param;

@@ -41,7 +41,7 @@
             <result property="user_id" column="ca_u_id"/>
         </association>
     </resultMap>
-    <select id="findCommentByVideoId" resultType="CommentResponseMap">
+    <select id="findCommentByVideoId" resultMap="CommentResponseMap">
         select c.* ,u.id as u_id,u.nickname,u.gender,u.avatar_url,u.description,ca.comment_id as ca_c_id,ca.user_id as ca_u_id
         from comment c left join user u on c.user_id = u.id
         <if test="userId!=null">
@@ -49,7 +49,7 @@
         </if>
         where c.video_id = #{videoId} order by c.created desc limit #{offset},#{limit}
     </select>
-    <select id="findCommentByRootId" resultType="CommentResponseMap">
+    <select id="findCommentByRootId" resultMap="CommentResponseMap">
         select c.* ,u.id as u_id,u.nickname,u.gender,u.avatar_url,u.description,ca.comment_id as ca_c_id,ca.user_id as ca_u_id
         from comment c left join user u on c.user_id =u.id
         <if test="userId!=null">
@@ -57,7 +57,7 @@
         </if>
         where c.video_id = #{videoId} and c.root_id = #{rootId} order by c.created desc limit #{offset},#{limit}
     </select>
-    <select id="findCommentByHot" resultType="CommentResponseMap">
+    <select id="findCommentByHot" resultMap="CommentResponseMap">
         select c.* ,u.id as u_id,u.nickname,u.gender,u.avatar_url,u.description,ca.comment_id as ca_c_id,ca.user_id as ca_u_id
         from comment c left join user u on c.user_id =u.id
         <if test="userId!=null">

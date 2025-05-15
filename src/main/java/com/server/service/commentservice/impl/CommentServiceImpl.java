@@ -2,8 +2,8 @@ package com.server.service.commentservice.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.server.dao.comment.CommentDao;
-import com.server.dao.comment.CommentUserActionDao;
+import com.server.service.commentservice.comment.CommentDao;
+import com.server.service.commentservice.comment.CommentUserActionDao;
 import com.server.entity.cache.comment.CommentLockResponseDto;
 import com.server.entity.cache.comment.CommentUserActionLockResponse;
 import com.server.entity.cache.comment.CommentUserLockDto;
