@@ -80,6 +80,10 @@ public class RedisUtil {
         return redisTemplate.opsForHash().get(key,field);
     }
 
+    public void hmSet(String key,Map<String,Object> map){
+        redisTemplate.opsForHash().putAll(key,map);
+    }
+
     public void hmSet(String key,Map<String,Object> map,long expire){
         redisTemplate.opsForHash().putAll(key,map);
         redisTemplate.expire(key,expire,TimeUnit.MILLISECONDS);

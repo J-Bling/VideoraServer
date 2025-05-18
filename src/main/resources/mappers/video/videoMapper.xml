@@ -276,4 +276,39 @@
         </if>
         limit #{limit}
     </select>
+
+
+
+    <select id="getRecentLikeVideo" resultType="com.server.entity.video.Video">
+        select v.* from video v left join like_record l on v.id=l.video_id
+        where l.user_id=#{userId} order by v.created desc limit #{limit}
+    </select>
+    <select id="getRecentCoinVideo" resultType="com.server.entity.video.Video">
+        select v.* from video v left join coin_record c on v.id=c.video_id
+        where c.user_id=#{userId} order by v.created desc limit #{limit}
+    </select>
+
+
+    <select id="getContributeVideo" resultType="com.server.entity.video.Video">
+        select * from video where author = #{userId} order by created desc limit #{offset},#{limit}
+    </select>
+
+    <select id="getCollection" resultMap="videoDataResponseMap">
+        select
+        v.id AS video_id,
+        v.*,
+        vs.video_id AS vs_video_id,
+        vs.*,
+        u.id AS user_id,
+        u.nickname,
+        u.gender,
+        u.avatar_url,
+        u.description AS user_description
+        from video v
+        join favorites_record f on v.id = f.video_id
+        left join user u on v.author = u.id
+        left join video_stats vs on v.id = vs.video_id
+        where f.user_id= #{userId} order by f.created desc
+        limit #{offset},#{limit}
+    </select>
 </mapper>

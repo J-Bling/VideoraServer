@@ -4,13 +4,24 @@ import com.server.controller.api.user.UserDataController;
 import com.server.dao.stats.UserStatsDao;
 import com.server.dao.user.UserDao;
 import com.server.dao.user.VerificationCodeDao;
+import com.server.dao.video.VideoDao;
 import com.server.dto.request.auth.AuthRequest;
+import com.server.dto.response.user.UserProfileResponse;
+import com.server.dto.response.user.UserResponse;
+import com.server.dto.response.video.VideoContributeResponse;
+import com.server.dto.response.video.VideoDataResponse;
 import com.server.entity.user.User;
+import com.server.entity.user.UserStats;
+import com.server.entity.video.Video;
+import com.server.entity.video.VideoStats;
 import com.server.enums.AuthErrorCode;
 import com.server.enums.CodeScene;
 import com.server.enums.ErrorCode;
 import com.server.exception.ApiException;
 import com.server.exception.AuthException;
+import com.server.service.stats.UserStatsService;
+import com.server.service.stats.VideoStatsService;
+import com.server.service.userservice.UserDataService;
 import com.server.service.userservice.UserService;
 import com.server.util.AvatarUtil;
 import com.server.util.JwtUtil;
@@ -18,15 +29,23 @@ import com.server.util.PasswordUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Pattern;
 
 @Service
 public class UserServiceImpl implements UserService {
 
     @Autowired private UserDao userDao;
+    @Autowired private UserDataService userDataService;
+    @Autowired private UserStatsService userStatsService;
     @Autowired private UserStatsDao userStatsDao;
     @Autowired private VerificationCodeDao verificationCodeDao;
+    @Autowired private VideoDao videoDao;
+    @Autowired private VideoStatsService videoStats;
 
+    private final int LIMIT_VIDEO_SIZE=20;
     private static final String Description="这个人很懒什么都没有写";
     private static final String EMAIL_REGEX = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
     private static final String CHINA_PHONE_REGEX = "^1[3-9]\\d{9}$";
@@ -198,6 +217,42 @@ public class UserServiceImpl implements UserService {
     @Override
     public void resetUserAvatar(int userId, String avatar_url) {
         userDao.updateAvatar(userId,avatar_url);
+    }
+
+
+
+    @Override
+    public UserProfileResponse getProfile(int userId) throws InterruptedException {
+        UserProfileResponse response = new UserProfileResponse();
+        UserResponse userResponse = userDataService.getUserDataWithStats(userId);
+        UserStats userStats = userStatsService.getUserStats(userId);
+        response.setUserResponse(userResponse);
+        response.setUserStats(userStats);
+        response.setLikeVideos(videoDao.getRecentLikeVideo(userId,LIMIT_VIDEO_SIZE));
+        response.setCoinVideos(videoDao.getRecentCoinVideo(userId,LIMIT_VIDEO_SIZE));
+        return response;
+    }
+
+    @Override
+    public List<VideoContributeResponse> getContributeVideos(int userId, int offset) throws InterruptedException {
+        List<Video> videos = videoDao.getContributeVideo(userId,offset,LIMIT_VIDEO_SIZE);
+        if(videos==null || videos.isEmpty()) return Collections.emptyList();
+
+        List<VideoContributeResponse> responses = new ArrayList<>();
+        for(Video video : videos){
+            VideoStats stats = videoStats.getVideoStats(video.getId());
+            VideoContributeResponse response = new VideoContributeResponse();
+            response.setVideo(video);
+            response.setVideoStats(stats);
+            responses.add(response);
+        }
+
+        return responses;
+    }
+
+    @Override
+    public List<VideoDataResponse> getCollection(int userId, int offset) {
+        return videoDao.getCollection(userId,offset,LIMIT_VIDEO_SIZE);
     }
 
 

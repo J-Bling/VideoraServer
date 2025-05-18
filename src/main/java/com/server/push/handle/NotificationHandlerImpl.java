@@ -12,6 +12,7 @@ import com.server.push.dto.request.MessageRequestOfRead;
 import com.server.push.dto.response.MessageErrorCode;
 import com.server.push.dto.response.WsMessage;
 import com.server.push.entity.Notification;
+import com.server.service.stats.UserStatsService;
 import com.server.util.redis.RedisUtil;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NotificationHandlerImpl implements NotificationHandler {
     @Autowired private RedisUtil redis;
     @Autowired private NotificationDao notificationDao;
+    @Autowired private UserStatsService userStatsService;
 
     private static final ConcurrentHashMap<String, ConcurrentWebSocketSessionDecorator> onlineUsers= new ConcurrentHashMap<>();
 
@@ -369,6 +371,9 @@ public class NotificationHandlerImpl implements NotificationHandler {
     {
         //连接时调用
         String userId= session.getAttributes().get(WebConstant.WEBSOCKET_USER_ID).toString();
+
+        userStatsService.recordOnline(userId);
+
         ConcurrentWebSocketSessionDecorator decorator =new ConcurrentWebSocketSessionDecorator(session,SEND_TIME_LIMIT,BUFFER_SIZE_LIMIT);
         ConcurrentWebSocketSessionDecorator sessionDecorator = onlineUsers.putIfAbsent(userId,decorator);
 

@@ -9,8 +9,8 @@
     <select id="findComment" resultType="com.server.comment.entity.Comment">
         select * from comment where comment_id = #{commentId} and user_id=#{userId}
     </select>
-    <select id="findAction" resultType="com.server.comment.entity.CommentUserActions">
-        select * from comment_user_actions where comment_id=#{commentId} and user_id=#{userId}
+    <select id="findAction" resultType="java.lang.Integer">
+        select count(*) from comment_user_actions where comment_id=#{commentId} and user_id=#{userId} limit 1
     </select>
     <select id="findCommentStats" resultType="com.server.comment.entity.Comment">
         select * from comment where comment_id=#{commentId}
@@ -42,15 +42,21 @@
         </association>
     </resultMap>
     <select id="findCommentByVideoId" resultMap="CommentResponseMap">
-        select c.* ,u.id as u_id,u.nickname,u.gender,u.avatar_url,u.description,ca.comment_id as ca_c_id,ca.user_id as ca_u_id
+        select c.* ,u.id as u_id,u.nickname,u.gender,u.avatar_url,u.description
+        <if test="userId!=null">
+            ,ca.comment_id as ca_c_id,ca.user_id as ca_u_id
+        </if>
         from comment c left join user u on c.user_id = u.id
         <if test="userId!=null">
             left join comment_user_actions ca on c.comment_id = ca.comment_id and ca.user_id = #{userId}
         </if>
-        where c.video_id = #{videoId} order by c.created desc limit #{offset},#{limit}
+        where c.video_id = #{videoId} and c.root_id is null limit #{offset},#{limit}
     </select>
     <select id="findCommentByRootId" resultMap="CommentResponseMap">
-        select c.* ,u.id as u_id,u.nickname,u.gender,u.avatar_url,u.description,ca.comment_id as ca_c_id,ca.user_id as ca_u_id
+        select c.* ,u.id as u_id,u.nickname,u.gender,u.avatar_url,u.description
+        <if test="userId!=null">
+            ,ca.comment_id as ca_c_id,ca.user_id as ca_u_id
+        </if>
         from comment c left join user u on c.user_id =u.id
         <if test="userId!=null">
             left join comment_user_actions ca on c.comment_id = ca.comment_id and ca.user_id = #{userId}
@@ -58,12 +64,15 @@
         where c.video_id = #{videoId} and c.root_id = #{rootId} order by c.created desc limit #{offset},#{limit}
     </select>
     <select id="findCommentByHot" resultMap="CommentResponseMap">
-        select c.* ,u.id as u_id,u.nickname,u.gender,u.avatar_url,u.description,ca.comment_id as ca_c_id,ca.user_id as ca_u_id
+        select c.* ,u.id as u_id,u.nickname,u.gender,u.avatar_url,u.description
+        <if test="userId!=null">
+            ,ca.comment_id as ca_c_id,ca.user_id as ca_u_id
+        </if>
         from comment c left join user u on c.user_id =u.id
         <if test="userId!=null">
             left join comment_user_actions ca on c.comment_id = ca.comment_id and ca.user_id = #{userId}
         </if>
-        where c.video_id = #{videoId} order by (c.like_count + c.reply_count) desc limit #{offset},#{limit}
+        where c.video_id = #{videoId} and c.root_id is null order by (c.like_count + c.reply_count) desc limit #{offset},#{limit}
     </select>
 
 
@@ -76,16 +85,16 @@
     </insert>
 
     <delete id="batchDeleteAction" parameterType="java.util.List">
-        delete from comment_user_actions where (comment_id,user_id) in
-        <foreach collection="actions" item="action" open="(" close=")" separator="or">
-            (comment_id = #{action.comment_id} and user_id = #{action.user_id})
+        delete from comment_user_actions where
+        <foreach collection="actions" item="action"  separator="or">
+            (comment_id=#{action.comment_id} and user_id= #{action.user_id})
         </foreach>
     </delete>
 
     <insert id="batchInsertComment" parameterType="java.util.List">
-        insert IGNORE into comment (comment_id,content,video_id,root_id,parent_id,user_id) values
+        insert IGNORE into comment (comment_id,content,video_id,root_id,parent_id,user_id,created) values
         <foreach collection="comments" item="comment" separator=",">
-            (#{comment.comment_id},#{comment.content},#{comment.video_id},#{comment.root_id},#{comment.parent_id},#{comment.user_id})
+            (#{comment.comment_id},#{comment.content},#{comment.video_id},#{comment.root_id},#{comment.parent_id},#{comment.user_id},#{comment.created})
         </foreach>
     </insert>
 
@@ -93,8 +102,9 @@
         UPDATE comment
         SET
         like_count = like_count +
-        <foreach collection="tasks" item="task" open="CASE WHEN comment_id" close="END ELSE 0 END" separator=" ">
-            WHEN #{task.commentId} THEN
+        case comment_id
+        <foreach collection="tasks" item="task" close="ELSE 0 END">
+            when #{task.commentId} THEN
             <choose>
                 <when test="task.likeCount != null">
                     #{task.likeCount}
@@ -105,7 +115,8 @@
             </choose>
         </foreach>,
         reply_count = reply_count +
-        <foreach collection="tasks" item="task" open="CASE WHEN comment_id" close="END ELSE 0 END" separator=" ">
+        case comment_id
+        <foreach collection="tasks" item="task" close="ELSE 0 END">
             WHEN #{task.commentId} THEN
             <choose>
                 <when test="task.replyCount != null">

@@ -17,7 +17,7 @@ import com.server.entity.comment.CommentUserActions;
 import com.server.entity.constant.RedisKeyConstant;
 import com.server.enums.ErrorCode;
 import com.server.exception.ApiException;
-import com.server.service.commentservice.CommentService;
+import com.server.service.commentservice.CommentServer;
 import com.server.util.cache.CommentLockHasMapCache;
 import com.server.util.cache.CommentUserActionLockHasMapCache;
 import com.server.util.queue.TaskQueue;
@@ -25,9 +25,6 @@ import com.server.util.queue.UpdateQueue;
 import com.server.util.redis.RedisUtil;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.transaction.annotation.Transactional;
 
 
 import javax.sql.DataSource;
@@ -37,21 +34,14 @@ import java.sql.SQLException;
 import java.util.*;
 
 
-public class CommentServiceImpl implements CommentService {
-    @Autowired
+public class CommentServerImpl implements CommentServer {
     private CommentDao commentDao;
-
-    @Autowired
     private CommentUserActionDao commentUserActionDao;
-
-    @Autowired
     private DataSource dataSource;
-
-    @Autowired
     private RedisUtil redis;
 
 
-    private final Logger logger= LoggerFactory.getLogger(CommentServiceImpl.class);
+    private final Logger logger= LoggerFactory.getLogger(CommentServerImpl.class);
     private final ObjectMapper mapper =new ObjectMapper();
 
     private static final CommentLockHasMapCache COMMENT_RESPONSE_ROOT_LEVEL_CACHE=new CommentLockHasMapCache();
@@ -807,7 +797,6 @@ private CommentUserActionLockResponse findCommentUserAction(Integer commentId,in
 
 
     @Override
-    @Transactional(value = "mysqlTransactionManager")
     public void deleteComment(int commentId,int videoId,int rootId,int parentId,int userId){
         int status= this.commentDao.deleteComment(commentId,userId);
         if(status<=0){
@@ -834,14 +823,12 @@ private CommentUserActionLockResponse findCommentUserAction(Integer commentId,in
     };
 
 
-    @Scheduled(fixedRate = CACHE_CLEANUP_INTERVAL)
     public void cleanCache(){
         COMMENT_USER_ACTION_CACHE.cleanCache();
         COMMENT_RESPONSE_ROOT_LEVEL_CACHE.cleanCache();
         COMMENT_RESPONSE_REPLY_LEVEL_CACHE.cleanCache();
     }
 
-    @Scheduled(fixedRate = CLEANUP_INSERT_TASK_INTERVAL)
     public void cleanInsertTask() throws SQLException {
         List<Comment> comments =COMMENT_INSERT_TASK_QUEUE.cleanQueue();
         List<CommentUserActionRequest> commentUserActionRequests =COMMENT_USER_ACTION_INSERT_QUEUE.cleanQueue();
@@ -906,8 +893,6 @@ private CommentUserActionLockResponse findCommentUserAction(Integer commentId,in
         return null;
     }
 
-    @Scheduled(fixedRate = CLEANUP_UPDATE_TASK_INTERVAL)
-    @Transactional(value = "mysqlTransactionManager")
     public void cleanUpdateTask(){
         List<StatsUpdateTask> statsUpdateTasks =COMMENT_UPDATE_QUEUE.cleanQueue();
         if(statsUpdateTasks==null || statsUpdateTasks.isEmpty()){
@@ -946,9 +931,6 @@ private CommentUserActionLockResponse findCommentUserAction(Integer commentId,in
             }
         }
     }
-
-    @Scheduled(fixedRate = CLEANUP_DELETE_TASK_INTERVAL)
-    @Transactional(value = "mysqlTransactionManager")
     public void cleanDeleteTask() throws SQLException {
         List<CommentUserActionRequest> commentUserActionRequests = COMMENT_USER_ACTION_DELETE_QUEUE.cleanQueue();
         if(commentUserActionRequests!=null && !commentUserActionRequests.isEmpty()){

@@ -34,10 +34,10 @@ public class CommentController {
         try{
             Integer userId = this.getUserId(request);
             String commentId = commentService.createComment(commentRequest,userId);
-            if(commentRequest.getRoot_id() !=null && commentRequest.getParent_id()!=null && commentRequest.getTargetId()!=null) {
+            if(!userId.equals(commentRequest.getTargetId())) {
                 notificationService.commentToCommentNotices(userId,commentRequest.getTargetId(),commentId);
             }
-            return Result.Ok(1);
+            return Result.Ok(commentId);
         }catch (ApiException apiException){
             return Result.ErrorResult(apiException.getErrorCode(),0);
         }catch (Exception e){
@@ -103,15 +103,16 @@ public class CommentController {
     )
     {
         try {
-                if(commentId==null) return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
+                if(commentId==null||commentId.equals("undefined")||targetId==null) return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
                 Integer userId = getUserId(request);
                 boolean status =commentService.like(commentId,userId,videoId);
                 if(status) {
-                    if(targetId!=null) notificationService.likeToCommentNotices(userId,targetId,commentId);
+                    if(!userId.equals(targetId)) notificationService.likeToCommentNotices(userId,targetId,commentId);
                     return Result.Ok(1);
+                }else {
+                    return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
                 }
 
-                return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
         } catch (ApiException apiException) {
             return Result.ErrorResult(apiException.getErrorCode(), 0);
         } catch (Exception e) {
@@ -122,10 +123,10 @@ public class CommentController {
 
     @GetMapping("/dislike/{commentId}/{videoId}")
     public ResponseEntity<Result> dislike(HttpServletRequest request,
-                                          @PathVariable("commentI") String commentId,
+                                          @PathVariable("commentId") String commentId,
                                           @PathVariable("videoId") int videoId) {
         try {
-            if (commentId == null) return Result.ErrorResult(ErrorCode.BAD_REQUEST, 0);
+            if(commentId==null||commentId.equals("undefined")) return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
             return commentService.disLike(commentId, getUserId(request), videoId)
                     ? Result.Ok(1)
                     : Result.ErrorResult(ErrorCode.BAD_REQUEST, 0);
@@ -138,7 +139,7 @@ public class CommentController {
     }
 
 
-    @DeleteMapping("/delete")
+    @DeleteMapping("/delete/{commentId}/{videoId}")
     public ResponseEntity<Result> deleteComment(HttpServletRequest request,
                                                 @PathVariable("commentI") String commentId,
                                                 @PathVariable("videoId") int videoId){

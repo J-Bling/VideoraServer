@@ -11,4 +11,6 @@ public interface UserStatsService {
     void CountCoin(Integer userId,long count);
     void CountFavorite(Integer userId,long count);
     void setUserStatsOnCache(UserStats stats);
+
+    void recordOnline(String userId);
 }

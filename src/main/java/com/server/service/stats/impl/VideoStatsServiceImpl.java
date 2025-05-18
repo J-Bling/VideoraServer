@@ -92,7 +92,7 @@ public class VideoStatsServiceImpl extends Stats implements VideoStatsService {
             try{
                 return new VideoStats(
                         videoId,
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_VIEW_COUNT).toString(),
+                        (String)redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_VIEW_COUNT),
                         redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_LIKE_COUNT),
                         redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_COIN_COUNT),
                         redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_FAVORITE_COUNT),

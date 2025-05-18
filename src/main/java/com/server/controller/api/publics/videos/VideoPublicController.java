@@ -1,9 +1,11 @@
 package com.server.controller.api.publics.videos;
 
 import com.server.dto.response.Result;
+import com.server.dto.response.video.VideoDataResponse;
 import com.server.enums.ErrorCode;
 import com.server.enums.VideoCategory;
 import com.server.exception.ApiException;
+import com.server.service.stats.VideoStatsService;
 import com.server.service.videoservice.VideoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "video 开放 api")
 public class VideoPublicController {
     @Autowired private VideoService videoService;
+    @Autowired private VideoStatsService videoStatsService;
 
     @GetMapping("/recommend/{offset}")
     @Operation(summary = "推荐视频")
@@ -70,7 +73,9 @@ public class VideoPublicController {
             @PathVariable("videoId") int videoId
     ){
         try{
-            return Result.Ok(videoService.getVideoResponseData(videoId,null));
+            VideoDataResponse response = videoService.getVideoResponseData(videoId,null);
+            videoStatsService.CountView(videoId,1);
+            return Result.Ok(response);
         }catch (ApiException apiException){
             return Result.ErrorResult(apiException.getErrorCode(),0);
         }catch (Exception e){

@@ -1,10 +1,12 @@
 package com.server.controller.api.videos.impl;
 
 import com.server.dto.response.Result;
+import com.server.dto.response.video.VideoDataResponse;
 import com.server.entity.constant.WebConstant;
 import com.server.enums.ErrorCode;
 import com.server.enums.VideoCategory;
 import com.server.exception.ApiException;
+import com.server.service.stats.VideoStatsService;
 import com.server.service.videoservice.VideoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 @RequestMapping("/api/video/data")
 @Tag(name = "视频数据与推荐接口")
 public class VideoBrowseController {
+    @Autowired private VideoStatsService videoStatsService;
     @Autowired private VideoService videoService;
 
     @GetMapping("/recommend/{offset}")
@@ -80,7 +83,9 @@ public class VideoBrowseController {
     ){
         Integer userId = Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
         try{
-            return Result.Ok(videoService.getVideoResponseData(videoId,userId));
+            VideoDataResponse response= videoService.getVideoResponseData(videoId,userId);
+            videoStatsService.CountView(videoId,1);
+            return Result.Ok(response);
         }catch (ApiException apiException){
             return Result.ErrorResult(apiException.getErrorCode(),0);
         }catch (Exception e){

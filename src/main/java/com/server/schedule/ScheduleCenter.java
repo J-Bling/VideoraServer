@@ -18,6 +18,7 @@ import com.server.push.handle.NotificationHandlerImpl;
 import com.server.push.service.impl.NotificationServiceImpl;
 import com.server.service.videoservice.VideoFractionStatsService;
 import com.server.util.redis.RedisUtil;
+import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -347,8 +348,10 @@ public class ScheduleCenter {
         cleanMessageCache();
     }
 
+
     @Scheduled(fixedRate = INSERT_NOTIFICATION_SPACED)
     public void insertNotificationSpaced(){
+
         try {
             List<String> notifications = redis.getRedisTemplate().execute(
                     new SessionCallback<List<String>>() {

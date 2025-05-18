@@ -1,5 +1,6 @@
 package com.server.service.videoservice.impl;
 
+import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.server.dao.video.VideoClipDao;
 import com.server.dao.video.VideoDao;
@@ -76,11 +77,6 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    private VideoDataResponse getVideoDataInCache(Integer videoId){
-        String data=redis.get(VIDEO_DATA_KEY(videoId));
-        if(data==null) return null;
-        return redis.deserialize(data,mapper.constructType(VideoDataResponse.class));
-    }
 
     private VideoRecordForUser findRecord(Integer videoId,Integer userId) throws InterruptedException {
         return new VideoRecordForUser(
@@ -91,7 +87,10 @@ public class VideoServiceImpl implements VideoService {
 
     private VideoDataResponse findVideoDataOnDB(Integer videoId,Integer userId){
         VideoDataResponse videoResponseData= this.videoDao.findVideoData(videoId, userId);
-        if(videoResponseData==null) return null;
+        if(videoResponseData==null) {
+            redis.set(VIDEO_DATA_KEY(videoId),RedisKeyConstant.NULL,RedisKeyConstant.CLEAN_CACHE_SPACED);
+            return null;
+        }
 
         if(userId!=null){
             UserResponse userResponse=videoResponseData.getAuthor();
@@ -103,12 +102,22 @@ public class VideoServiceImpl implements VideoService {
 
 
     private VideoDataResponse findVideoDataOnCache(Integer videoId,Integer userId) throws InterruptedException {
-        VideoDataResponse data= this.getVideoDataInCache(videoId);
-        if(data!=null){
-            if(data.getVideoStats()==null){
-                VideoStats videoStats= this.videoStatsService.getVideoStats(videoId);
-                data.setVideoStats(videoStats);
+        String string=redis.get(VIDEO_DATA_KEY(videoId));
+
+        if(string!=null){
+            if(RedisKeyConstant.NULL.equals(string)){
+                return null;
             }
+            VideoDataResponse data =null;
+            try {
+                 data= mapper.readValue(string, mapper.constructType(VideoDataResponse.class));
+            }catch (JacksonException jacksonException){
+                return null;
+            }
+
+            VideoStats videoStats= this.videoStatsService.getVideoStats(videoId);
+            data.setVideoStats(videoStats);
+
             UserResponse userResponse=data.getAuthor();
             if(userResponse==null){
                 userResponse=this.userDataService.getUserDataWithStats(data.getAuthorId());
@@ -117,19 +126,19 @@ public class VideoServiceImpl implements VideoService {
 
             if(userId!=null){
                 if(userResponse!=null ) {
-                    if(userResponse.getUserRelation()==null)
-                        userResponse.setUserRelation(userId.equals(userResponse.getId()) ? null :
-                                new UserRelation(this.interactionService.findRelation(userId, userResponse.getId())));
-                    if(userResponse.getUserStats()==null) userResponse.setUserStats(this.userStatsService.getUserStats(userResponse.getId()));
+                    userResponse.setUserRelation(userId.equals(userResponse.getId()) ? null :
+                            new UserRelation(this.interactionService.findRelation(userId, userResponse.getId())));
+                    userResponse.setUserStats(this.userStatsService.getUserStats(userResponse.getId()));
                 }
 
-                if(data.getVideoRecordForUser()==null) data.setVideoRecordForUser(this.findRecord(videoId,userId));
+                data.setVideoRecordForUser(this.findRecord(videoId,userId));
             }
 
             return data;
         }else {
-            Boolean isLock=redis.setIfAbsent(VIDEO_DATA_LOCK(videoId),"lock",RedisKeyConstant.EXPIRED);
+            Boolean isLock=redis.setIfAbsent(VIDEO_DATA_LOCK(videoId),RedisKeyConstant.LOCK_VALUE,RedisKeyConstant.EXPIRED);
             if(isLock!=null && !isLock) {
+                Thread.sleep(RedisKeyConstant.EXPIRED);
                 return this.findVideoDataOnCache(videoId,userId);
             }
             return this.findVideoDataOnDB(videoId,userId);

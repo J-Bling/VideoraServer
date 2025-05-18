@@ -9,14 +9,19 @@ public class CreateCommentRequest {
     private Integer video_id;
     private String root_id;
     private String parent_id;
-    private Integer targetId;
+    private Integer targetId; //要回复的人
+
+    public CreateCommentRequest(){}
+    public CreateCommentRequest(String content,Integer video_id){
+        this.content=content;this.video_id=video_id;
+    }
 
     public boolean vail(){
         if(content==null || content.isEmpty() || video_id==null){
             return false;
         }
         if(root_id !=null && parent_id!=null){
-            return root_id.length()!=32 || parent_id.length()!=32;
+            return root_id.length()==32 && parent_id.length()==32;
         }
         return root_id==null && parent_id==null;
     }

@@ -14,7 +14,7 @@ import java.util.List;
 public interface CommentDao {
     Comment findComment(@Param("commentId") String commentId,@Param("userId") Integer userId);
     void deleteComment(@Param("commentId") String commentId);
-    CommentUserActions findAction(@Param("commentId") String commentId,@Param("userId") Integer userId);
+    Integer findAction(@Param("commentId") String commentId,@Param("userId") Integer userId);
     Comment findCommentStats(@Param("commentId") String commentId);
 
     List<CommentResponse> findCommentByVideoId(@Param("videoId") Integer videoID,

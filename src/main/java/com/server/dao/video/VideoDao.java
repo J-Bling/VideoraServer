@@ -39,4 +39,10 @@ public interface VideoDao {
     Video findVideoById(@Param("id") Integer id);
 
     List<VideoDataResponse> findVideo(@Param("limit") int limit,@Param("isHot") boolean isHot);
+
+    List<Video> getRecentLikeVideo(@Param("userId") int userId,@Param("limit") int limit);
+    List<Video> getRecentCoinVideo(@Param("userId") int userId,@Param("limit") int limit);
+
+    List<Video> getContributeVideo(@Param("userId") int userId,@Param("offset") int offset, @Param("limit") int limit);
+    List<VideoDataResponse> getCollection(@Param("userId") int userId,@Param("offset") int offset,@Param("limit") int limit);
 }

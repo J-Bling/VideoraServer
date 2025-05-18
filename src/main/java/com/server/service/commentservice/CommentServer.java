@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * 废弃接口
  */
-public interface CommentService {
+public interface CommentServer {
 
     List<CommentResponse> getVideoComments(int videoId,int userId,int offset,int limit,boolean isHot);
     List<CommentResponse> getReplyComments(int rootId,int parentId,int userId,int offset,int limit,boolean isHot);

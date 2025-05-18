@@ -3,14 +3,14 @@ import lombok.Data;
 
 @Data
 public class Notification {
-    private String message_id;
-    private Integer user_id;
-    private Integer target_id;
-    private Object tag_id;
-    private String message;
-    private Integer type;
-    private Boolean is_read;
-    private Long created;
+    protected String message_id;
+    protected Integer user_id;
+    protected Integer target_id;
+    protected Object tag_id;
+    protected String message;
+    protected Integer type;
+    protected Boolean is_read;
+    protected Long created;
 
 
     public Notification() {}

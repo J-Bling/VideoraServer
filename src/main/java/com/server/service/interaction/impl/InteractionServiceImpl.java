@@ -51,8 +51,10 @@ public class InteractionServiceImpl implements InteractionService {
     private static final String UPDATE_FAVORITE_KEY=RedisKeyConstant.UPDATE_FAVORITE_KEY;
     private static final String UPDATE_LIKE_HASH_KEY=RedisKeyConstant.UPDATE_LIKE_HASH_KEY;
     private static final String UPDATE_USER_RELATION_KEY=RedisKeyConstant.UPDATE_USER_RELATION_KEY;
-    private static final ConcurrentHashMap<Integer,Lock> COIN_TRADE_LOCK=new ConcurrentHashMap<>();
 
+    private static String COIN_LOCK(Integer userId){
+        return RedisKeyConstant.COIN_LOCK+userId;
+    }
     private static String USER_RELATION_HASH_KEY(Integer userId,Integer targetId){
         return RedisKeyConstant.USER_RELATION_HASH_KEY+HASH_FIELD(userId,targetId);
     };
@@ -80,23 +82,7 @@ public class InteractionServiceImpl implements InteractionService {
     private static String COIN_RECORD_LOCK(Integer userId,Integer videoId){
         return RedisKeyConstant.COIN_RECORD_LOCK+"u:"+userId+"v:"+videoId;
     }
-    private static String COIN_COUNT_LOCK(Integer userId){
-        return RedisKeyConstant.COIN_COUNT_LOCK+"u:"+userId;
-    }
 
-
-
-    private void awaitLock(String lock,String value,long duration) throws InterruptedException {
-        Boolean isLock= this.redis.setIfAbsent(lock,value,duration);
-        if(isLock==null) throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-        if(isLock) return;
-        while (true){
-            Thread.sleep(duration);
-            isLock=this.redis.setIfAbsent(lock,value,duration);
-            if(isLock==null) throw new ApiException(ErrorCode.INTERNAL_SERVER_ERROR);
-            if(isLock) return;
-        }
-    }
 
     @Override
     public Boolean findRelation(Integer userId,Integer targetId) throws InterruptedException {
@@ -130,22 +116,24 @@ public class InteractionServiceImpl implements InteractionService {
         Integer userId =userRelation.getUser_id();
         Integer targetId= userRelation.getTarget_id();
 
-        awaitLock(USER_RELATION_LOCK(userId,targetId),LOCK_VALUE,EXPIRE);
+        Boolean isLock = redis.setIfAbsent(USER_RELATION_LOCK(userId,targetId),RedisKeyConstant.COIN_LOCK,RedisKeyConstant.EXPIRED);
+        if(isLock==null || !isLock) throw new ApiException(ErrorCode.TOO_MANY_REQUESTS);
+
         Boolean relationType=this.findRelation(userId,targetId);
 
         if(userRelation.getRelation_type()==null){
             if(relationType==null) throw new ApiException(ErrorCode.BAD_REQUEST);
+            pushUserRelationCache(userId,targetId,NULL);
             if(relationType){
                 userStatsService.CountFollowing(userId,-1);
                 userStatsService.CountFollower(targetId,-1);
             }
-            pushUserRelationCache(userId,targetId,NULL);
 
         } else if (userRelation.getRelation_type()) {
             if(relationType!=null && relationType) throw new ApiException(ErrorCode.BAD_REQUEST);
+            pushUserRelationCache(userId,targetId,IS);
             userStatsService.CountFollowing(userId,1);
             userStatsService.CountFollower(targetId,1);
-            pushUserRelationCache(userId,targetId,IS);
 
         }else {
             if(relationType!=null){
@@ -196,7 +184,9 @@ public class InteractionServiceImpl implements InteractionService {
 
     @Override
     public Boolean handleLikeForVideo(Integer userId, Integer videoId, Integer authorId,Integer like) throws InterruptedException {
-        awaitLock(LIKE_RECORD_LOCK(userId,videoId)+":handle",LOCK_VALUE,EXPIRE);
+        Boolean isLock = redis.setIfAbsent(LIKE_RECORD_LOCK(userId,videoId),RedisKeyConstant.COIN_LOCK,RedisKeyConstant.EXPIRED);
+        if(isLock==null || !isLock) throw new ApiException(ErrorCode.TOO_MANY_REQUESTS);
+
         Boolean isLike =this.findLikeRecord(userId,videoId);
 
         if(like==0){ //取消
@@ -247,7 +237,9 @@ public class InteractionServiceImpl implements InteractionService {
 
     @Override
     public Boolean handleFavFoeVideo(Integer userId, Integer videoId, Integer fav) throws InterruptedException {
-        awaitLock(FAVORITE_RECORD_LOCK(userId,videoId)+":handle",LOCK_VALUE,EXPIRE);
+        Boolean isLock = redis.setIfAbsent(FAVORITE_RECORD_LOCK(userId,videoId)+":handle",RedisKeyConstant.COIN_LOCK,RedisKeyConstant.EXPIRED);
+        if(isLock==null || !isLock) throw new ApiException(ErrorCode.TOO_MANY_REQUESTS);
+
         Boolean isFav =this.findFavoriteRecord(userId,videoId);
         String field=HASH_FIELD(userId,videoId);
 
@@ -311,30 +303,21 @@ public class InteractionServiceImpl implements InteractionService {
 
     @Override
     public void handleCoinForVideo(Integer userId, Integer videoId) throws InterruptedException {
-//        awaitLock(COIN_COUNT_LOCK(userId),LOCK_VALUE,EXPIRE*3); //把乐观锁 变成 悲观锁
-        Lock lock = COIN_TRADE_LOCK.computeIfAbsent(userId,k->new ReentrantLock());
-
+        Boolean isLock = redis.setIfAbsent(COIN_LOCK(userId),RedisKeyConstant.COIN_LOCK,RedisKeyConstant.EXPIRED);
+        if(isLock==null || !isLock) throw new ApiException(ErrorCode.TOO_MANY_REQUESTS);
         try {
-            if(!lock.tryLock(2, TimeUnit.SECONDS)){
-                throw new ApiException(ErrorCode.PAYLOAD_TOO_LARGE);
-            }
-            try {
-                Boolean hasCoined = this.hadCoin(userId, videoId);
-                if (hasCoined != null && hasCoined) throw new ApiException(ErrorCode.OPERATION_REPEATED);
-                String coinsStr = (String) redis.hGet(RedisKeyConstant.USER_STATS + userId, RedisKeyConstant.USER_COIN_COUNT);
-                Integer coins = coinsStr != null ? Integer.parseInt(coinsStr) : setCoinOnCache(userId);
+            Boolean hasCoined = this.hadCoin(userId, videoId);
+            if (hasCoined != null && hasCoined) throw new ApiException(ErrorCode.OPERATION_REPEATED);
+            String coinsStr = redis.hGet(RedisKeyConstant.USER_STATS + userId, RedisKeyConstant.USER_COIN_COUNT).toString();
+            Integer coins = coinsStr != null ? Integer.parseInt(coinsStr) : setCoinOnCache(userId);
 
-                if (coins == null || coins < 1) throw new ApiException(ErrorCode.PAYMENT_REQUIRED);
+            if (coins == null || coins < 1) throw new ApiException(ErrorCode.PAYMENT_REQUIRED);
 
-                userStatsService.CountCoin(userId, -1);
-                videoStatsService.CountCoin(videoId, 1);
-                redis.hSet(UPDATE_COIN_KEY, HASH_FIELD(userId, videoId), IS);
-                redis.set(COIN_RECORD_HASH_KEY(userId, videoId), IS, RedisKeyConstant.CLEAN_CACHE_SPACED);
+            userStatsService.CountCoin(userId, -1);
+            videoStatsService.CountCoin(videoId, 1);
+            redis.hSet(UPDATE_COIN_KEY, HASH_FIELD(userId, videoId), IS);
+            redis.set(COIN_RECORD_HASH_KEY(userId, videoId), IS, RedisKeyConstant.CLEAN_CACHE_SPACED);
 
-            } finally {
-                lock.unlock();
-                COIN_TRADE_LOCK.remove(userId);
-            }
         }catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ApiException(ErrorCode.PAYLOAD_TOO_LARGE);

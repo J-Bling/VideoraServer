@@ -9,6 +9,9 @@ import com.server.util.redis.RedisUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,6 +24,7 @@ public class UserStatsServiceImpl extends Stats implements UserStatsService {
 
     @Autowired
     private UserStatsDao userStatsDao;
+
 
     @Override
     public UserStats getUserStats(Integer userId) throws InterruptedException {
@@ -133,7 +137,6 @@ public class UserStatsServiceImpl extends Stats implements UserStatsService {
 
     @Override
     public void CountCoin(Integer userId, long count) {
-        if(count>=0) return;
         updateCache(USER_STATS(userId),RedisKeyConstant.USER_COIN_COUNT,count,userId);
     }
 
@@ -149,5 +152,27 @@ public class UserStatsServiceImpl extends Stats implements UserStatsService {
 
         Map<String, Object> user_stats = getStringObjectMap(stats);
         redis.hmSet(USER_STATS(stats.getUser_id()),user_stats, RedisKeyConstant.CLEAN_CACHE_SPACED);
+    }
+
+    @Override
+    public void recordOnline(String userId) {
+        try {
+            String lastOnlineTimeStr =(String) redis.hGet(RedisKeyConstant.USER_ONLINE_RECORD, userId);
+            if (lastOnlineTimeStr == null) {
+                redis.hSet(RedisKeyConstant.USER_ONLINE_RECORD, userId, "" + System.currentTimeMillis());
+                CountCoin(Integer.parseInt(userId), 1);
+                return;
+            }
+            long lastOnlineTime = Long.parseLong(lastOnlineTimeStr);
+            LocalDate localDate = Instant.ofEpochMilli(lastOnlineTime).atZone(ZoneId.systemDefault()).toLocalDate();
+            LocalDate today = LocalDate.now();
+
+            if (!today.isEqual(localDate)) {
+                redis.hSet(RedisKeyConstant.USER_ONLINE_RECORD, userId, "" + System.currentTimeMillis());
+                CountCoin(Integer.parseInt(userId), 1);
+            }
+        } catch (Exception e) {
+            logger.error("发生错误 {} ",e.getMessage());
+        }
     }
 }

@@ -1,7 +1,10 @@
 package com.server.controller.api.user;
 
 import com.server.dto.response.Result;
+import com.server.dto.response.user.UserProfileResponse;
 import com.server.dto.response.user.UserResponse;
+import com.server.dto.response.video.VideoContributeResponse;
+import com.server.dto.response.video.VideoDataResponse;
 import com.server.entity.constant.WebConstant;
 import com.server.enums.ErrorCode;
 import com.server.exception.ApiException;
@@ -13,12 +16,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -271,6 +277,49 @@ public class UserDataController {
         } catch (Exception e) {
             logger.error("resetUserAvatar failed: {}", e.getMessage());
             return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR, "服务器内部错误");
+        }
+    }
+
+
+    @GetMapping("/profile")
+    public UserProfileResponse getProfile(HttpServletRequest request){
+        try{
+            return userService.getProfile(getUserId(request));
+        }catch (Exception e){
+            logger.error(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"获取用户数据失败");
+        }
+    }
+
+
+    @GetMapping("/collection-video/{offset}")
+    public List<VideoDataResponse> getCollection(HttpServletRequest request,@PathVariable("offset") int offset){
+        try{
+            return userService.getCollection(getUserId(request),offset);
+        }catch (Exception e){
+            logger.error(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"获取收藏视频数据失败");
+        }
+    }
+
+    @GetMapping("/contribute-video/{offset}")
+    public List<VideoContributeResponse> getContribute(HttpServletRequest request,@PathVariable("offset") int offset){
+        try {
+            return userService.getContributeVideos(getUserId(request),offset);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"获取投稿视频数据失败");
+        }
+    }
+
+
+    @GetMapping("/o-contribute-video/{userId}/{offset}")
+    public List<VideoContributeResponse> getContributes(@PathVariable("userId") int userId,@PathVariable("offset") int offset){
+        try{
+            return userService.getContributeVideos(userId,offset);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"获取投稿视频数据失败");
         }
     }
 }
