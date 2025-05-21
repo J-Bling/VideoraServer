@@ -226,11 +226,12 @@
         left join video_stats vs on v.id = vs.video_id
         where ur.user_id = #{userId}
         <if test="lastCreated!=null">
-            and v.created &lt; lastCreated
+            and v.created &lt; #{lastCreated}
+            limit
         </if>
-        limit
         <if test="lastCreated==null">
-            0,
+            order by created desc
+            limit 0,
         </if>
         #{limit}
     </select>
@@ -246,12 +247,11 @@
         on v.id = vs.video_id
         where author = #{authorId}
         <if test="lastCreated!=null">
-            and v.created &lt; lastCreated
+            and v.created &lt; #{lastCreated}
+            limit
         </if>
-        order by created desc
-        limit
         <if test="lastCreated==null">
-            0,
+            order by created desc limit 0,
         </if>
         #{limit}
     </select>
@@ -276,6 +276,7 @@
         </if>
         limit #{limit}
     </select>
+
 
 
 

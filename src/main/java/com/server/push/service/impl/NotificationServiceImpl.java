@@ -5,7 +5,6 @@ import com.server.dao.notification.NotificationDao;
 import com.server.dao.record.RecordDao;
 import com.server.dto.response.user.UserResponse;
 import com.server.dto.response.video.VideoDataResponse;
-import com.server.push.dto.request.NotificationForComment;
 import com.server.push.dto.request.NotificationForVideoResponse;
 import com.server.push.dto.response.HistoryNotificationResponse;
 import com.server.push.entity.Notification;
@@ -16,6 +15,7 @@ import com.server.comment.server.CommentService;
 import com.server.service.userservice.UserDataService;
 import com.server.service.videoservice.VideoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.Nullable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -81,50 +81,94 @@ public class NotificationServiceImpl implements NotificationService {
         return notificationForVideoResponses;
     }
 
-    private List<NotificationForComment> getCommentInteractionNotification(Integer userId,int offset,NotificationCode code)
-            throws InterruptedException {
-        List<Notification> notificationList = proxy.findHistoryNotifications(userId,code,offset);
-        Map<String,List<Notification>> notificationCommentMap=classifyForTagId(notificationList);
 
-        if(notificationList==null) return null;
+    public static class NotificationReplyResponse{
+        private Comment comment;
+        private UserResponse user;
+        private Notification notification;
 
-        List<NotificationForComment> notificationForCommentList = new ArrayList<>();
-        for(Map.Entry<String,List<Notification>> notificationEntry : notificationCommentMap.entrySet()){
-            String commentId = notificationEntry.getKey();
-            List<Notification> notifications = notificationEntry.getValue();
-
-            Comment comment= commentService.getCommentOnCache(commentId);
-            if(comment==null) continue;
-
-            VideoDataResponse video = videoService.getVideoResponseData(comment.getVideo_id(),null);
-            NotificationForComment notificationForComment= new NotificationForComment(comment,video);
-
-            List<HistoryNotificationResponse<Integer>> historyNotificationResponses = new ArrayList<>();
-            for(Notification notification : notifications){
-                if(notification!=null){
-                    UserResponse user = userDataService.getUserResponseData(notification.getTarget_id());
-                    historyNotificationResponses.add(new HistoryNotificationResponse<>(notification,user));
-
-                    if(!notification.getIs_read()){
-                        UNREAD_NOTIFICATIONS.offer(notification.getMessage_id());
-                    }
-                }
-            }
-
-            notificationForComment.setNotificationWithUser(historyNotificationResponses);
-            notificationForCommentList.add(notificationForComment);
+        public Notification getNotification() {
+            return notification;
         }
 
-        return notificationForCommentList;
+        public Comment getComment() {
+            return comment;
+        }
+
+        public UserResponse getUser() {
+            return user;
+        }
+
+        public void setComment(Comment comment) {
+            this.comment = comment;
+        }
+
+        public void setUser(UserResponse user) {
+            this.user = user;
+        }
+
+        public void setNotification(Notification notification) {
+            this.notification = notification;
+        }
+
+        public NotificationReplyResponse(){}
+        public NotificationReplyResponse(Comment comment,UserResponse user,Notification notification){this.comment=comment;this.user=user;this.notification=notification;}
+    }
+
+    private List<NotificationReplyResponse> getCommentInteractionNotification(Integer userId,int offset,NotificationCode code)
+            throws InterruptedException {
+        List<Notification> notificationList = proxy.findHistoryNotifications(userId,code,offset);
+
+        List<NotificationReplyResponse> replyResponses = new ArrayList<>();
+        for(Notification notification : notificationList){
+            Comment comment = commentService.getCommentOnCache((String) notification.getTag_id());
+            UserResponse userResponse = userDataService.getUserResponseData(notification.getTarget_id());
+            replyResponses.add(new NotificationReplyResponse(comment,userResponse,notification));
+        }
+
+        return replyResponses;
+
+//        Map<String,List<Notification>> notificationCommentMap=classifyForTagId(notificationList);
+//
+//        if(notificationList==null) return null;
+//
+//        List<NotificationForComment> notificationForCommentList = new ArrayList<>();
+//        for(Map.Entry<String,List<Notification>> notificationEntry : notificationCommentMap.entrySet()){
+//            String commentId = notificationEntry.getKey();
+//            List<Notification> notifications = notificationEntry.getValue();
+//
+//            Comment comment= commentService.getCommentOnCache(commentId);
+//            if(comment==null) continue;
+//
+//            VideoDataResponse video = videoService.getVideoResponseData(comment.getVideo_id(),null);
+//            NotificationForComment notificationForComment= new NotificationForComment(comment,video);
+//
+//            List<HistoryNotificationResponse<Integer>> historyNotificationResponses = new ArrayList<>();
+//            for(Notification notification : notifications){
+//                if(notification!=null){
+//                    UserResponse user = userDataService.getUserResponseData(notification.getTarget_id());
+//                    historyNotificationResponses.add(new HistoryNotificationResponse<>(notification,user));
+//
+//                    if(!notification.getIs_read()){
+//                        UNREAD_NOTIFICATIONS.offer(notification.getMessage_id());
+//                    }
+//                }
+//            }
+//
+//            notificationForComment.setNotificationWithUser(historyNotificationResponses);
+//            notificationForCommentList.add(notificationForComment);
+//        }
+//
+//        return notificationForCommentList;
     }
 
     @Override
-    public List<NotificationForComment> getLikeCommentNotification(Integer userId, int offset) throws InterruptedException {
+    public List<NotificationReplyResponse> getLikeCommentNotification(Integer userId, int offset) throws InterruptedException {
         return getCommentInteractionNotification(userId,offset,NotificationCode.LIKED_FOR_COMMENT);
     }
 
     @Override
-    public List<NotificationForComment> getReplyCommentNotification(Integer userId, int offset) throws InterruptedException {
+    public List<NotificationReplyResponse> getReplyCommentNotification(Integer userId, int offset) throws InterruptedException {
         return getCommentInteractionNotification(userId,offset,NotificationCode.REPLY_FOR_COMMENT);
     }
 
@@ -145,6 +189,11 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         return historyNotificationResponses;
+    }
+
+    @Override
+    public void deleteNotifications(Integer userId, NotificationCode type) {
+        proxy.deleteMessage(userId,type);
     }
 
 
@@ -249,11 +298,11 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public void auditingStatusNotification(Integer userId, Integer videoId,boolean isPass) {
+    public void auditingStatusNotification(Integer userId, Integer videoId, boolean isPass, @Nullable String title) {
         if(userId==null || videoId==null) return;
         String message = NotificationCode.SERVER_BULLETIN.getDescription()+
                 (isPass ? "你发布视频已经被审核通过"
-                        : "你发布的视频审核不通过");
+                        : "你发布的视频"+title+"审核不通过");
 
         Notification notification = Notification.builder()
                 .messageId(UUID.randomUUID().toString())

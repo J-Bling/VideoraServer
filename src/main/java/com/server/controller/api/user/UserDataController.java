@@ -322,4 +322,14 @@ public class UserDataController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"获取投稿视频数据失败");
         }
     }
+
+    @GetMapping("/follower")
+    public List<UserResponse> getFollowers(HttpServletRequest request){
+        try{
+            return userService.findAllFowllower(getUserId(request));
+        }catch (Exception e){
+            logger.error(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"获取关注失败");
+        }
+    }
 }

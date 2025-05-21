@@ -7,6 +7,8 @@ import com.server.exception.ApiException;
 import com.server.service.dynamic.DynamicService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +25,8 @@ import java.sql.Timestamp;
 public class VideoDynamicController {
     @Autowired private DynamicService dynamicService;
 
+    private final Logger logger = LoggerFactory.getLogger(VideoDynamicController.class);
+
     private int getUserId(HttpServletRequest request){
         return Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
     }
@@ -31,19 +35,16 @@ public class VideoDynamicController {
     @Operation(summary = "推荐频道")
     public ResponseEntity<Result> recommendDynamicVideo(
             HttpServletRequest request,
-            @PathVariable("lastCreated") Long lastCreated
+            @PathVariable("lastCreated") long lastCreated
     ){
         try{
-            if(lastCreated==null) {
-                return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
-            }
-            Timestamp timestamp = new Timestamp(lastCreated);
-
+            Timestamp timestamp =lastCreated==0 ? null : new Timestamp(lastCreated);
             int userId =getUserId(request);
-            return Result.Ok(dynamicService.findVideoByAuthor(userId,timestamp));
+            return Result.Ok(dynamicService.findVideoByUserId(userId,timestamp));
         }catch (ApiException apiException){
             return Result.ErrorResult(apiException.getErrorCode(),0);
         }catch (Exception e){
+            logger.error(e.getMessage());
             return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
         }
     }
@@ -53,17 +54,15 @@ public class VideoDynamicController {
     public ResponseEntity<Result> selectDynamicVideoByAuthorId(
             @PathVariable("authorId") int authorId,
             @PathVariable("offset") int offset,
-            @PathVariable("lastCreated") Long lastCreated
+            @PathVariable("lastCreated") long lastCreated
     ){
         try{
-            if(lastCreated==null) {
-                return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
-            }
-            Timestamp timestamp = new Timestamp(lastCreated);
+            Timestamp timestamp =lastCreated ==0 ? null : new Timestamp(lastCreated);
             return Result.Ok(dynamicService.findVideoDataByAuthorId(authorId,timestamp,offset));
         }catch (ApiException apiException){
             return Result.ErrorResult(apiException.getErrorCode(),0);
         }catch (Exception e){
+            logger.error(e.getMessage());
             return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
         }
     }

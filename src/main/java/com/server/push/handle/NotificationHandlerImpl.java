@@ -56,6 +56,7 @@ public class NotificationHandlerImpl implements NotificationHandler {
 
     private static final int MIN_PRODUCE_SIZE=300;
     private static final int MAX_NOTIFICATION_SIZE=99;
+    private static final int MAX_LIMIT=20;
     /**
         需要按时清理 INSERT_MESSAGE_LIST_KEY , MESSAGE_UPDATE_LIST_KEY ,
         HISTORY_MESSAGE_HASH_KEY 缓存 限定长度为99
@@ -342,12 +343,12 @@ public class NotificationHandlerImpl implements NotificationHandler {
     @Override
     public List<Notification> findHistoryNotification(Integer userId, NotificationCode type, int offset){
         String key = HISTORY_MESSAGE_LIST_KEY(userId.toString(),type.getCode().toString());
-        List<Object> notifications = redis.lRange(key,offset,offset+MAX_NOTIFICATION_SIZE);
+        List<Object> notifications = redis.lRange(key,offset,offset+MAX_LIMIT);
         if(notifications==null || notifications.isEmpty()){
-            List<Notification> notificationList = notificationDao.findHistoryNotificationByType(userId,type.getCode(),offset,MAX_NOTIFICATION_SIZE);
+            List<Notification> notificationList = notificationDao.findHistoryNotificationByType(userId,type.getCode(),offset,MAX_LIMIT);
 
             if(notificationList !=null && !notificationList.isEmpty() && offset<=MAX_NOTIFICATION_SIZE){
-                insertMessageOnHistoryCache(userId.toString(), type.getCode(),notificationList);
+                this.insertMessageOnHistoryCache(userId.toString(), type.getCode(),notificationList);
             }
 
             return notificationList;
@@ -356,13 +357,20 @@ public class NotificationHandlerImpl implements NotificationHandler {
         try {
             List<Notification> notificationList = new ArrayList<>();
             for (Object item : notifications) {
-                notificationList.add(MAPPER.readValue(item.toString(),MAPPER.constructType(Notification.class)));
+                notificationList.add(MAPPER.readValue((String) item,MAPPER.constructType(Notification.class)));
             }
             return notificationList;
         }catch (Exception e){
             logger.error("error : {}",e.getMessage());
             return null;
         }
+    }
+
+    @Override
+    public void deleteNotification(Integer userId, NotificationCode type) {
+        String key = HISTORY_MESSAGE_LIST_KEY(userId.toString(),type.getCode().toString());
+        redis.delete(key);
+        notificationDao.deleteNotification(userId,type.getCode());
     }
 
 

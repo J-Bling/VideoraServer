@@ -137,7 +137,7 @@ public class DynamicServiceImpl implements DynamicService{
 
 
     @Override
-    public List<VideoDataResponse> findVideoByAuthor(Integer userId,Timestamp lastCreated) {
+    public List<VideoDataResponse> findVideoByUserId(Integer userId,Timestamp lastCreated) {
         return videoDao.findVideoForDynamic(userId,lastCreated,VIDEO_LIMIT_SIZE);
     }
 

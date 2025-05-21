@@ -375,7 +375,7 @@ public class CommentServiceImpl implements CommentService, DisposableBean , Comm
         if(str==null) {
             Comment comment = commentDao.findCommentStats(commentId);
             if(comment==null){
-                setCommentOnCache(key,str);
+                setCommentOnCache(key,RedisKeyConstant.NULL);
             }else {
                 setCommentOnCache(key,comment);
             }

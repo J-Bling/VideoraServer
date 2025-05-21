@@ -1,5 +1,6 @@
 package com.server.service.userservice.impl;
 
+import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.server.dao.user.UserDao;
 import com.server.dto.request.UserRequestBase;
@@ -26,6 +27,8 @@ public class UserDataServiceImpl implements UserDataService {
     @Autowired private UserStatsService userStatsService;
     @Autowired private InteractionService interactionService;
 
+    private final ObjectMapper mapper = new ObjectMapper();
+
 
     private static String USER_DATA_KEY(Integer userId){
         return RedisKeyConstant.USER_DATA_KEY+userId;
@@ -37,20 +40,23 @@ public class UserDataServiceImpl implements UserDataService {
 
     private void setUserDataInCache(UserResponse userResponse){
         if(userResponse==null) return;
-        ObjectMapper mapper=new ObjectMapper();
         try{
             String data=mapper.writeValueAsString(userResponse);
             redis.set(USER_DATA_KEY(userResponse.getId()),data,RedisKeyConstant.CLEAN_CACHE_SPACED);
         }catch (Exception e){
-            logger.error("",e);
+            logger.error("序列化失败,{}",e.getMessage());
         }
     }
 
     private UserResponse getUserDataInCache(Integer userId){
         String user=redis.get(USER_DATA_KEY(userId));
         if(user==null) return null;
-        ObjectMapper mapper=new ObjectMapper();
-        return redis.deserialize(user,mapper.constructType(UserResponse.class));
+        try {
+            return mapper.readValue(user, mapper.constructType(UserResponse.class));
+        }catch (JacksonException jacksonException){
+            logger.error("反序列化失败{}",jacksonException.getMessage());
+            return null;
+        }
     }
 
 
@@ -68,7 +74,6 @@ public class UserDataServiceImpl implements UserDataService {
 
     /**
      * Function : setUserStatsOnCache and setRelationOnCache can filter unValue
-     * @param userResponse
      */
     private void updateUserDataOnCache(UserResponse userResponse){
         if(userResponse==null) return;

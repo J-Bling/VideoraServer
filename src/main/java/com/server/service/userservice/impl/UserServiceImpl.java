@@ -47,18 +47,10 @@ public class UserServiceImpl implements UserService {
 
     private final int LIMIT_VIDEO_SIZE=20;
     private static final String Description="这个人很懒什么都没有写";
-    private static final String EMAIL_REGEX = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
     private static final String CHINA_PHONE_REGEX = "^1[3-9]\\d{9}$";
-    private static final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);
     private static final Pattern CHINA_PHONE_PATTERN = Pattern.compile(CHINA_PHONE_REGEX);
 
 
-    public static boolean isValidEmail(String email) {
-        if (email == null || email.isEmpty()) {
-            return false;
-        }
-        return EMAIL_PATTERN.matcher(email).matches();
-    }
 
     public static boolean isValidChinaPhone(String phone) {
         if (phone == null || phone.isEmpty()) {
@@ -76,7 +68,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public Integer createUser(AuthRequest request) {
         if(!request.Vail()) throw new AuthException(AuthErrorCode.INVALID_REQUEST);
-        if(request.getEmail() !=null) if(isValidEmail(request.getEmail())) throw new AuthException(AuthErrorCode.INVALID_EMAIL_FORMAT);
         if(request.getPhone()!=null) if(isValidChinaPhone(request.getPhone())) throw new AuthException(AuthErrorCode.INVALID_PHONE_FORMAT);
         if (request.getPassword().length()<8) throw new AuthException(AuthErrorCode.INVALID_REQUEST);
 
@@ -99,18 +90,11 @@ public class UserServiceImpl implements UserService {
 
 
     private User findUserByPass(AuthRequest request){
-        if(request.getPassword()==null) {
+        if(request.getPassword()==null || (request.getEmail()==null&&request.getPhone()==null)){
             throw new AuthException(AuthErrorCode.INVALID_REQUEST);
         }
-
-        if(request.getEmail() !=null) {
-            if (!isValidEmail(request.getEmail())) throw new AuthException(AuthErrorCode.INVALID_EMAIL_FORMAT);
-        }
-        else if(request.getPhone() !=null) {
+        if(request.getPhone() !=null) {
             if (!isValidChinaPhone(request.getPhone())) throw new AuthException(AuthErrorCode.INVALID_PHONE_FORMAT);
-        }
-        else {
-            throw new AuthException(AuthErrorCode.INVALID_REQUEST);
         }
         return request.getEmail()!=null ? userDao.findUserByEmail(request.getEmail())
                 : userDao.findUserByPhone(request.getPhone());
@@ -143,11 +127,11 @@ public class UserServiceImpl implements UserService {
         Integer userId=null;
 
         if(request.getEmail()!=null) {
-            boolean isVail=verificationCodeDao.verifyCodeExists(request.getEmail(), true,request.getCode(), CodeScene.LOGIN.getCode(),System.currentTimeMillis());
-            if(isVail) userId=userDao.findUserIdByEmail(request.getEmail());
+            Boolean isVail=verificationCodeDao.verifyCodeExists(request.getEmail(), true,request.getCode(), CodeScene.LOGIN.getCode(),System.currentTimeMillis());
+            if(isVail !=null && isVail) userId=userDao.findUserIdByEmail(request.getEmail());
         }else if (request.getPhone()!=null){
-            boolean isVail=verificationCodeDao.verifyCodeExists(request.getPhone(), true,request.getCode(), CodeScene.LOGIN.getCode(),System.currentTimeMillis());
-            if(isVail) userId=userDao.findUserIdByPhone(request.getPhone());
+            Boolean isVail=verificationCodeDao.verifyCodeExists(request.getPhone(), true,request.getCode(), CodeScene.LOGIN.getCode(),System.currentTimeMillis());
+            if(isVail !=null &&isVail) userId=userDao.findUserIdByPhone(request.getPhone());
         }else {
             throw new ApiException(ErrorCode.BAD_REQUEST);
         }
@@ -164,12 +148,12 @@ public class UserServiceImpl implements UserService {
         }
 
         if(request.getEmail()!=null) {
-            boolean isVail=verificationCodeDao.verifyCodeExists(request.getEmail(), true,request.getCode(), CodeScene.LOGIN.getCode(),System.currentTimeMillis());
-            if(isVail) return userDao.findUserByEmail(request.getEmail());
+            Boolean isVail=verificationCodeDao.verifyCodeExists(request.getEmail(), true,request.getCode(), CodeScene.LOGIN.getCode(),System.currentTimeMillis());
+            if(isVail!=null && isVail) return userDao.findUserByEmail(request.getEmail());
 
         }else if (request.getPhone()!=null){
-            boolean isVail=verificationCodeDao.verifyCodeExists(request.getPhone(), true,request.getCode(), CodeScene.LOGIN.getCode(),System.currentTimeMillis());
-            if (isVail) return userDao.findUserByPhone(request.getPhone());
+            Boolean isVail=verificationCodeDao.verifyCodeExists(request.getPhone(), true,request.getCode(), CodeScene.LOGIN.getCode(),System.currentTimeMillis());
+            if (isVail!=null && isVail) return userDao.findUserByPhone(request.getPhone());
         }
         throw new ApiException(ErrorCode.BAD_REQUEST);
     }
@@ -197,14 +181,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void resetPasswordByCode(int userId, UserDataController.ResetPasswordRequest passwordRequest) {
-        boolean isVailCode= verificationCodeDao.verifyCodeExists(
+        Boolean isVailCode= verificationCodeDao.verifyCodeExists(
                 passwordRequest.getAccount(),
                 passwordRequest.getType(),
                 passwordRequest.getCode(),
                 CodeScene.RESET.getCode(),
                 System.currentTimeMillis());
 
-        if(!isVailCode){
+        if(isVailCode ==null || !isVailCode){
             throw new ApiException(ErrorCode.BAD_REQUEST);
         }
 
@@ -253,6 +237,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<VideoDataResponse> getCollection(int userId, int offset) {
         return videoDao.getCollection(userId,offset,LIMIT_VIDEO_SIZE);
+    }
+
+    @Override
+    public List<UserResponse> findAllFowllower(int userId) {
+        return userDao.findFriends(userId);
     }
 
 

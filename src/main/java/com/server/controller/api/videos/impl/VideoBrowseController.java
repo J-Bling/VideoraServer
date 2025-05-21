@@ -10,14 +10,17 @@ import com.server.service.stats.VideoStatsService;
 import com.server.service.videoservice.VideoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/video/data")
@@ -25,6 +28,8 @@ import javax.servlet.http.HttpServletRequest;
 public class VideoBrowseController {
     @Autowired private VideoStatsService videoStatsService;
     @Autowired private VideoService videoService;
+
+    private final Logger logger = LoggerFactory.getLogger(VideoBrowseController.class);
 
     @GetMapping("/recommend/{offset}")
     @Operation(summary = "推荐视频")
@@ -90,6 +95,23 @@ public class VideoBrowseController {
             return Result.ErrorResult(apiException.getErrorCode(),0);
         }catch (Exception e){
             return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
+        }
+    }
+
+    @PostMapping("/video-cover")
+    public List<VideoDataResponse> getVideoCover(HttpServletRequest request,@RequestBody Integer[] videoIds){
+        try{
+            if(videoIds==null || videoIds.length==0) return null;
+            List<VideoDataResponse> videoDataResponses = new ArrayList<>();
+            for(Integer id : videoIds){
+                VideoDataResponse response = videoService.getVideoResponseData(id,null);
+                if(response!=null) videoDataResponses.add(response);
+            }
+            return videoDataResponses;
+
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"获取视频封面失败");
         }
     }
 }

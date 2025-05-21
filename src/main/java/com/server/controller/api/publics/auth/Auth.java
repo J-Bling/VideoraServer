@@ -78,8 +78,8 @@ public class Auth {
             }
 
             String token = JwtUtil.generateToken(user.getId(),1);
-            user.setPassword("");
-            user.setSalt("");
+            user.setPassword(null);
+            user.setSalt(null);
             Map<String,Object> response=new HashMap<>();
             response.put("token",token);
             response.put("user",user);
@@ -157,8 +157,8 @@ public class Auth {
 
             String account = authRequest.getEmail()!=null ? authRequest.getEmail() : authRequest.getPhone();
             boolean type = authRequest.getEmail()!=null;
-            boolean isVail= verificationCodeDao.verifyCodeExists(account,type,authRequest.getCode(),CodeScene.REGISTER.getCode(),System.currentTimeMillis());
-            if (!isVail) return Result.ErrorResult(ErrorCode.BAD_REQUEST,"验证码无效");
+            Boolean isVail= verificationCodeDao.verifyCodeExists(account,type,authRequest.getCode(),CodeScene.REGISTER.getCode(),System.currentTimeMillis());
+            if (isVail ==null || !isVail) return Result.ErrorResult(ErrorCode.BAD_REQUEST,"验证码无效");
 
             Integer id= userService.createUser(authRequest);
             String token=JwtUtil.generateToken(id,1);

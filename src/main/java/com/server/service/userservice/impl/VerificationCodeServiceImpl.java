@@ -55,7 +55,9 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
             code="";//后续
             throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
         }
+        verificationCode.setAccount(userRequestBase.getAccount());
         verificationCode.setScene(scene);
+        verificationCode.setType(userRequestBase.isAccountType());
         verificationCode.setCode(code);
         verificationCode.setExpired(System.currentTimeMillis()+6*60*1000);//6分钟过期
 

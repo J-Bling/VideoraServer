@@ -3,6 +3,7 @@ package com.server.dao.notification;
 import com.server.dto.response.video.VideoDataResponse;
 import com.server.push.dto.response.HistoryNotificationResponse;
 import com.server.push.entity.Notification;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.lang.Nullable;
@@ -28,4 +29,7 @@ public interface NotificationDao {
 
     void batchInsert(@Param("notifications") List<Notification> notifications);
     void batchUpdateStatus(@Param("ids") List<String> ids);
+
+    @Delete("delete from notification where user_id=#{userId} and type=#{type}")
+    void deleteNotification(@Param("userId") Integer userId,@Param("type") int type);
 }

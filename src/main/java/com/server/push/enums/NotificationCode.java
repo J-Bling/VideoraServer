@@ -16,6 +16,13 @@ public enum NotificationCode {
         this.code=code;this.description=description;
     }
 
+    public static NotificationCode fromCode(int code){
+        for(NotificationCode notificationCode : values()){
+            if(notificationCode.code==code) return notificationCode;
+        }
+        throw new RuntimeException("参数错误");
+    }
+
     public static Integer[] getCodes(){
         Integer[] codes= new Integer[values().length];
         int i =0;

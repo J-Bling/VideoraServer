@@ -8,6 +8,7 @@ public class UserRelation {
     private Integer  user_id;
     private Integer target_id;//up id
     private Boolean relation_type;//0拉黑 1关注
+    private Boolean vail;
 
     public UserRelation(){}
     public UserRelation(int user_id,int target_id,Boolean relation_type){

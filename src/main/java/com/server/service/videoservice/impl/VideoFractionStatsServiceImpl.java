@@ -30,6 +30,7 @@ public class VideoFractionStatsServiceImpl implements VideoFractionStatsService 
 
 
     private Double computedFraction(VideoStats videoStats){
+        if(videoStats==null) return 0.0;
         return videoStats.getView_count()
                 + videoStats.getLike_count() *2.0
                 + videoStats.getFavorite_count() *3.0
@@ -45,7 +46,7 @@ public class VideoFractionStatsServiceImpl implements VideoFractionStatsService 
 
             List<VideoDataResponse> videoDataResponses = videoDao.findVideo(MAX_VIDEO_RANK_SIZE,true);
             if(videoDataResponses==null || videoDataResponses.isEmpty()) return ;
-            videoDataResponses.addAll(videoDao.findVideo(MAX_VIDEO_RANK_SIZE,false));
+//            videoDataResponses.addAll(videoDao.findVideo(MAX_VIDEO_RANK_SIZE,false));
 
             Map<String, Set<ZSetOperations.TypedTuple<Object>>> categoryForVideoId=new HashMap<>();
 
@@ -96,12 +97,25 @@ public class VideoFractionStatsServiceImpl implements VideoFractionStatsService 
         }
     }
 
+    @Override
+    public void insertRank(List<VideoDataResponse> videoDataResponseList) {
+        try{
+            if(videoDataResponseList==null || videoDataResponseList.isEmpty()) return;
+            for(VideoDataResponse response : videoDataResponseList){
+                double fraction = computedFraction(response.getVideoStats());
+                redis.zAdd(VIDEO_RANKING_KEY,fraction,response.getId().toString());
+                redis.zAdd(VIDEO_RANK_FOR_CATEGORY(response.getCategory()),fraction,response.getId().toString());
+            }
+        }catch (Exception e){
+            logger.error(e.getMessage());
+        }
+    }
 
 
     @Override
     public List<String> getVideoId(long start,long end){
         try{
-            Set<Object> fractions=redis.zRange(VIDEO_RANKING_KEY,start,end);
+            Set<Object> fractions=redis.zRevRange(VIDEO_RANKING_KEY,start,end);
 
             if(fractions==null || fractions.isEmpty()) return null;
             List<String> array=new ArrayList<>();
@@ -119,7 +133,7 @@ public class VideoFractionStatsServiceImpl implements VideoFractionStatsService 
     @Override
     public List<String> getVideoId(String category,long start,long end){
         try{
-            Set<Object> fractions=redis.zRange(VIDEO_RANK_FOR_CATEGORY(category),start,end);
+            Set<Object> fractions=redis.zRevRange(VIDEO_RANK_FOR_CATEGORY(category),start,end);
             if(fractions==null || fractions.isEmpty()) return null;
 
             List<String> array=new ArrayList<>();

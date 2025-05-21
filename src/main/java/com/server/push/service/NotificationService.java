@@ -1,8 +1,9 @@
 package com.server.push.service;
 
-import com.server.push.dto.request.NotificationForComment;
 import com.server.push.dto.request.NotificationForVideoResponse;
 import com.server.push.dto.response.HistoryNotificationResponse;
+import com.server.push.enums.NotificationCode;
+import com.server.push.service.impl.NotificationServiceImpl;
 
 import java.util.List;
 
@@ -17,14 +18,20 @@ public interface NotificationService {
     void followToAuthorNotices(Integer myId,Integer authorId);
     void letterToOtherNotices(Integer myId,Integer otherId);
     void newDevelopmentToFunNotices(Integer myId,Integer videoId);
-    void auditingStatusNotification(Integer userId,Integer videoId,boolean isPass);
+    void auditingStatusNotification(Integer userId,Integer videoId,boolean isPass,String title);
 
 
     /**
         历史通知
      */
     List<NotificationForVideoResponse> getLikeVideoNotification(Integer userId, int offset) throws InterruptedException;
-    List<NotificationForComment> getLikeCommentNotification(Integer userId, int offset) throws InterruptedException;
-    List<NotificationForComment>  getReplyCommentNotification(Integer userId,int offset) throws InterruptedException;
+    List<NotificationServiceImpl.NotificationReplyResponse> getLikeCommentNotification(Integer userId, int offset) throws InterruptedException;
+    List<NotificationServiceImpl.NotificationReplyResponse>  getReplyCommentNotification(Integer userId, int offset) throws InterruptedException;
     List<HistoryNotificationResponse<Integer>> getFollowNotification(Integer userId,int offset) throws InterruptedException;
+
+
+    /**
+     * 删除历史消息
+     */
+    void deleteNotifications(Integer userId, NotificationCode type);
 }

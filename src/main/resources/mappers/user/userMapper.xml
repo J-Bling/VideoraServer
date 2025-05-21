@@ -46,4 +46,10 @@
         JOIN user_relation ur ON u.id = ur.target_id
         WHERE ur.user_id = #{userId} AND ur.relation_type = 1
     </select>
+
+    <select id="findFollower" resultType="com.server.dto.response.user.UserResponse">
+        select u.id ,u.nickname , u.gender, u.avatar_url , u.description
+        from user u join user_relation ur on u.id = ur.target_id
+        where ur.user_id = #{userId} and u.relation_type = 1
+    </select>
 </mapper>

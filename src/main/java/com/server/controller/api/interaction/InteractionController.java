@@ -94,7 +94,7 @@ public class InteractionController {
         try{
             int userId=Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
             boolean status=this.interactionService.handleLikeForVideo(userId,videoId,authorId,like);
-            if(status) notificationService.likeToVideoNotices(userId,authorId,videoId);
+//            if(status) notificationService.likeToVideoNotices(userId,authorId,videoId);
 
             return Result.Ok(status);
         }catch (ApiException apiException){

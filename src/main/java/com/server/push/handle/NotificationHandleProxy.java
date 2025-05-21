@@ -26,5 +26,9 @@ public class NotificationHandleProxy {
     public List<Notification> findUnreadNotifications(Integer userId){
         return notificationHandler.findUnreadNotification(userId);
     }
+
+    public void deleteMessage(Integer userId, NotificationCode type){
+        notificationHandler.deleteNotification(userId,type);
+    }
 }
 

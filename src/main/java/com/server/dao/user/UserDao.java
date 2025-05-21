@@ -56,4 +56,6 @@ public interface UserDao {
 
     @Update("update user set password = #{password},salt=#{salt} where id =#{userId}")
     void updatePasswordAndSalt(@Param("userId") int userId,@Param("password")String password,@Param("salt") String salt);
+
+    List<UserResponse> findFollower(@Param("userId") int userId);
 }

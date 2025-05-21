@@ -151,7 +151,7 @@ public class VideoUploadService implements VideoEditService {
         videoDao.deleteVideoById(videoId);
         userStatsService.CountVideo(authorId,-1);
         videoDao.deleteVideoStatsById(videoId);
-        notificationService.auditingStatusNotification(authorId,videoId,false);
+        notificationService.auditingStatusNotification(authorId,videoId,false,video.getTitle());
 
         Object[] videoClips=COMPRESS_QUEUE.toArray();
         for(Object obj : videoClips){
@@ -205,7 +205,7 @@ public class VideoUploadService implements VideoEditService {
             VideoDataResponse video= videoService.getVideoResponseData(clip.getVideo_id(),null);
             if(!stats) {
                 logger.error("文件压缩失败 ： 原文件名 ： {}", clip.getUrl());
-                notificationService.auditingStatusNotification(video.getAuthorId(),video.getId(),false);
+         //      notificationService.auditingStatusNotification(video.getAuthorId(),video.getId(),false);
                 this.deleteVideoDataForUploadFail(video.getId(),video.getAuthorId());
                 continue;
             }
@@ -221,7 +221,7 @@ public class VideoUploadService implements VideoEditService {
                 this.videoClipDao.insertVideoClip(clip);
                 this.videoDao.updateReviewStatus(clip.getVideo_id(), true);
                 dynamicService.setVideoIdsInCache(video.getAuthorId(), clip.getVideo_id());
-                notificationService.auditingStatusNotification(video.getAuthorId(), clip.getVideo_id(), true);
+                notificationService.auditingStatusNotification(video.getAuthorId(), clip.getVideo_id(), true,null);
                 notificationService.newDevelopmentToFunNotices(video.getAuthorId(), clip.getVideo_id());
                 videoFractionStatsService.insertRank(video.getId(),video.getCategory());
             } catch (Exception e) {

@@ -188,10 +188,37 @@ public class VideoServiceImpl implements VideoService {
         return videoClipsResponses;
     }
 
+    private List<VideoDataResponse> getRecommentdationsOnDb(Integer userId,int offset){
+        List<VideoDataResponse> videoDataResponses = videoDao.findVideos(offset,LIMIT-1,true);
+        if(videoDataResponses==null || videoDataResponses.isEmpty()) return videoDataResponses;
+
+
+        for(VideoDataResponse response : videoDataResponses){
+            setVideoDataInCache(response,null);
+        }
+        return videoDataResponses;
+    }
+
+    private List<VideoDataResponse> getRecommentByCategoryOnDb(Integer userId,String categoryName,int offset) throws InterruptedException {
+        List<Integer> videoIds = videoDao.findVideosIdsByCategory(categoryName,offset,LIMIT-1,true);
+        if(videoIds==null || videoIds.isEmpty()) return null;
+
+        List<VideoDataResponse> videoDataResponses = new ArrayList<>();
+        for(Integer id : videoIds){
+            videoDataResponses.add(findVideoDataOnCache(id,null));
+        }
+
+        return videoDataResponses;
+    }
+
     @Override
     public List<VideoDataResponse> videoRecommendationsByRandom(Integer userId, int offset) throws InterruptedException {
         List<String> videoIds=videoFractionStatsService.getVideoId(offset,offset+LIMIT);
-        if(videoIds==null || videoIds.isEmpty()) return null;
+        if(videoIds==null || videoIds.isEmpty()){
+            List<VideoDataResponse> videoDataResponses = getRecommentdationsOnDb(userId,offset);
+            videoFractionStatsService.insertRank(videoDataResponses);
+            return videoDataResponses;
+        }
 
         List<VideoDataResponse> videoDataResponses =new ArrayList<>();
 
@@ -212,7 +239,11 @@ public class VideoServiceImpl implements VideoService {
     @Override
     public List<VideoDataResponse> videoRecommendationsByCategory(Integer userId, VideoCategory category, int offset) throws InterruptedException {
          List<String> videoIds=videoFractionStatsService.getVideoId(category.getName(),offset,offset+LIMIT);
-         if(videoIds==null || videoIds.isEmpty()) return null;
+         if(videoIds==null || videoIds.isEmpty()){
+             List<VideoDataResponse> videoDataResponses = getRecommentByCategoryOnDb(userId,category.getName(),offset);
+             videoFractionStatsService.insertRank(videoDataResponses);
+             return videoDataResponses;
+         }
 
         List<VideoDataResponse> videoDataResponses =new ArrayList<>();
 
@@ -234,6 +265,7 @@ public class VideoServiceImpl implements VideoService {
     public VideoDataResponse getVideoResponseData(Integer videoId,Integer userId) throws InterruptedException {
         return this.findVideoDataOnCache(videoId,userId);
     }
+
 
     @Override
     public List<VideoClipsResponse> getVideoClipUrl(Integer videoId, int offset,boolean quality) {

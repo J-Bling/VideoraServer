@@ -51,12 +51,12 @@ public class VideoStatsServiceImpl extends Stats implements VideoStatsService {
             try{
                 return new VideoStats(
                         videoId,
-                        viewCount,
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_LIKE_COUNT),
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_COIN_COUNT),
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_FAVORITE_COUNT),
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_SHARE_COUNT),
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_BARRAGE_COUNT)
+                        Integer.parseInt(viewCount),
+                        Integer.parseInt((String)redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_LIKE_COUNT)),
+                        Integer.parseInt((String) redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_COIN_COUNT)),
+                        Integer.parseInt((String) (redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_FAVORITE_COUNT))),
+                        Integer.parseInt((String) redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_SHARE_COUNT)),
+                        Integer.parseInt((String) redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_BARRAGE_COUNT))
                 );
 
             }catch (Exception e){
@@ -92,12 +92,12 @@ public class VideoStatsServiceImpl extends Stats implements VideoStatsService {
             try{
                 return new VideoStats(
                         videoId,
-                        (String)redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_VIEW_COUNT),
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_LIKE_COUNT),
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_COIN_COUNT),
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_FAVORITE_COUNT),
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_SHARE_COUNT),
-                        redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_BARRAGE_COUNT)
+                        Integer.parseInt((String)redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_VIEW_COUNT)),
+                        Integer.parseInt((String)redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_LIKE_COUNT)),
+                        Integer.parseInt((String) redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_COIN_COUNT)),
+                        Integer.parseInt((String) (redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_FAVORITE_COUNT))),
+                        Integer.parseInt((String) redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_SHARE_COUNT)),
+                        Integer.parseInt((String) redis.hGet(VIDEO_STATS(videoId),RedisKeyConstant.VIDEO_BARRAGE_COUNT))
                 );
 
             }catch (Exception e){

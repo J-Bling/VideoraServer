@@ -55,6 +55,9 @@ public class InteractionServiceImpl implements InteractionService {
     private static String COIN_LOCK(Integer userId){
         return RedisKeyConstant.COIN_LOCK+userId;
     }
+    private static String HASH_FIELD(Integer userId,Integer targetId){
+        return userId+":"+targetId;
+    }
     private static String USER_RELATION_HASH_KEY(Integer userId,Integer targetId){
         return RedisKeyConstant.USER_RELATION_HASH_KEY+HASH_FIELD(userId,targetId);
     };
@@ -66,9 +69,6 @@ public class InteractionServiceImpl implements InteractionService {
     }
     private static String COIN_RECORD_HASH_KEY(Integer userId,Integer videoId){
         return RedisKeyConstant.COIN_RECORD_HASH_KEY+HASH_FIELD(userId,videoId);
-    }
-    private static String HASH_FIELD(Integer userId,Integer targetId){
-        return userId+":"+targetId;
     }
     private static  String USER_RELATION_LOCK(Integer userId,Integer targetId){
         return RedisKeyConstant.USER_RELATION_LOCK+"u:"+userId+"t:"+targetId;

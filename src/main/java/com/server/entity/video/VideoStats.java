@@ -21,17 +21,17 @@ public class VideoStats {
         favorite_count=
         share_count= barrage_count=0;
     }
-    public VideoStats(Integer video_id,String view_count,
-                      Object like_count,Object coin_count,
-                      Object favorite_count,Object share_count,
-                      Object barrage_count)
+    public VideoStats(Integer video_id,int view_count,
+                      int like_count,int coin_count,
+                      int favorite_count,int share_count,
+                      int barrage_count)
     {
         this.video_id=video_id;
-        this.view_count=Integer.parseInt(view_count);
-        this.like_count=Integer.parseInt(like_count.toString());
-        this.coin_count=Integer.parseInt(coin_count.toString());
-        this.favorite_count= Integer.parseInt(favorite_count.toString());
-        this.share_count=Integer.parseInt(share_count.toString());
-        this.barrage_count=Integer.parseInt(barrage_count.toString());
+        this.view_count=view_count;
+        this.like_count=like_count;
+        this.coin_count=coin_count;
+        this.favorite_count= favorite_count;
+        this.share_count=share_count;
+        this.barrage_count=barrage_count;
     }
 }

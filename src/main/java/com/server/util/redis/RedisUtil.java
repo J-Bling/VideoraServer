@@ -375,7 +375,7 @@ public class RedisUtil {
             if(string==null || string.trim().isEmpty()) return null;
             return this.objectMapper.readValue(string,type);
         }catch (Exception e){
-            logger.error("序列化失败 : {}",e.getMessage(),e);
+            logger.error("反序列化失败 : {}",e.getMessage(),e);
             return null;
         }
     }
