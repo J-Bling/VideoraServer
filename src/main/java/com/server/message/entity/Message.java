@@ -8,7 +8,7 @@ public class Message {
     private Integer sender_id;
     private Integer target_id;
     private String message;
-    private Long created; //微秒
+    private Long created; //毫秒
 
     public Message(){}
     public Message(Integer sender_id,Integer target_id,String message){

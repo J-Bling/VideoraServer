@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.server.dao.message.MessageLifeDao">
+    <select id="findAll" resultType="com.server.message.entity.MessageLife">
+        select * from message_life
+    </select>
+    <delete id="batchDelete">
+        delete from message_life
+    </delete>
+    <insert id="batchInsert" parameterType="com.server.message.entity.MessageLife">
+        insert into message_life (room_id,expire) values
+        <foreach collection="lives" item="life" separator=",">
+            (#{life.room_id},#{life.expire})
+        </foreach>
+    </insert>
+</mapper>

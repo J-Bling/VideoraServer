@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface ChatWebSocketHandler extends WebSocketHandler {
     List<Message> findHistoryMessage(Integer userId, Integer targetId, Long lastCreated, int offset);
+    void produceMessage(Message message);
+    void produceMessage(List<Message> messages);
 }

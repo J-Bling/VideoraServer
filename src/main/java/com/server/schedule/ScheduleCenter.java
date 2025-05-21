@@ -307,24 +307,6 @@ public class ScheduleCenter {
         }
     }
 
-    private void cleanMessageCache(){
-        try{
-            ConcurrentHashMap<String, Long> historyMessageLiftForKeys= ChatWebSocketHandlerImpl.getHistoryMessageLift();
-            if(historyMessageLiftForKeys.isEmpty()) return;
-
-            Set<String> keys = new HashSet<>();
-            for(Map.Entry<String,Long> map : historyMessageLiftForKeys.entrySet()){
-                if(map.getValue()<=System.currentTimeMillis()){
-                    keys.add(map.getKey());
-                }
-            }
-
-            redis.delete(keys);
-
-        }catch (Exception e){
-
-        }
-    }
 
     @Scheduled(fixedRate = RedisKeyConstant.RANK_CACHE_LIFE_CYCLE)
     public void updateVideoRankSpaced() {
@@ -338,14 +320,6 @@ public class ScheduleCenter {
     @Scheduled(cron = "0 30 0 * * ?")
     public void cleanNotificationCacheScheduled(){
         cleanNotificationCache();
-    }
-
-    /**
-     * 凌晨1点更新
-     */
-    @Scheduled(cron = "0 0 1 * * ?")
-    public void cleanMessageCacheScheduled(){
-        cleanMessageCache();
     }
 
 

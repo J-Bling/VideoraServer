@@ -153,6 +153,16 @@ public class ChatWebSocketHandlerImpl implements ChatWebSocketHandler {
                 : findHistoryMessageOnCache(userId,targetId,offset);
     }
 
+    @Override
+    public void produceMessage(Message message) {
+
+    }
+
+    @Override
+    public void produceMessage(List<Message> messages) {
+
+    }
+
     private void sendMessage(ConcurrentWebSocketSessionDecorator decorator,String data) throws IOException {
         decorator.sendMessage(new TextMessage(data));
     }
@@ -201,10 +211,13 @@ public class ChatWebSocketHandlerImpl implements ChatWebSocketHandler {
                     try {
                         String MessageJson = mapper.writeValueAsString(newMessage);
                         ConcurrentWebSocketSessionDecorator decorator = onlineUsers.get(request.getTarget_id());
-                        if (decorator != null) sendMessage(decorator, MessageJson);
+                        if(decorator!=null){
+                            sendMessage(decorator, MessageJson);
+                        }else{
+                            notificationService.letterToOtherNotices(userId, request.getTarget_id());
+                        }
                         redis.rPush(RedisKeyConstant.INSERT_MSG_FOR_MESSAGE_LIST_KEY,MessageJson);
                         setHistoryMessageOnCache(userId,newMessage.getTarget_id(),MessageJson);
-                        notificationService.letterToOtherNotices(userId, request.getTarget_id());
 
                     } catch (JacksonException e) {
                         logger.error("serialization fail reason:{}", e.getMessage());
@@ -234,6 +247,11 @@ public class ChatWebSocketHandlerImpl implements ChatWebSocketHandler {
         return false;
     }
 
+
+    /**
+     *历史消息缓存设计 :
+     * 所有消息缓存在 队列当中 设定每3天清理一次缓存 ； 使用内存缓存和关机持久化进行存储历史消息有效生命周期 进行定期清理
+     */
     public static ConcurrentHashMap<String,Long> getHistoryMessageLift(){
         return HISTORY_MESSAGE_LIFT;
     }

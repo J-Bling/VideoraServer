@@ -2,6 +2,7 @@ package com.server.dao.user;
 
 import com.server.dto.response.user.UserResponse;
 import com.server.entity.user.User;
+import com.server.message.service.impl.ChatServiceImpl;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
