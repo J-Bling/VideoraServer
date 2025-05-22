@@ -27,6 +27,7 @@ public interface UserService {
     void resetPasswordByPass(int userId, UserDataController.ResetPasswordRequest passwordRequest);
     void resetPasswordByCode(int userId,UserDataController.ResetPasswordRequest passwordRequest);
     void resetUserAvatar(int userId,String avatar_url);
+    void resetDescription(int userId,String description);
 
     UserProfileResponse getProfile(int userId) throws InterruptedException;
     List<VideoContributeResponse> getContributeVideos(int userId,int offset) throws InterruptedException;

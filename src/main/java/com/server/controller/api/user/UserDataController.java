@@ -55,7 +55,7 @@ public class UserDataController {
     @Operation(summary = "查询用户基本信息 : UserResponse ->{id,nickname,gender,avatar_url,description }")
     public ResponseEntity<Result> getUserResponseData(@PathVariable("targetId") Integer targetId){
         try{
-            return Result.Ok(userDataService.getUserResponseData(targetId));
+            return Result.Ok(userDataService.getUserData(targetId));
         }catch (ApiException apiException){
             return Result.ErrorResult(apiException.getErrorCode(),0);
         }catch (Exception e){
@@ -133,8 +133,7 @@ public class UserDataController {
 
         public boolean isVailToCodeVerification(){
             return Account!=null && code!=null
-                    && type!=null && oldPassword !=null
-                    && newPassword.length()>7;
+                    && type!=null && newPassword!=null && newPassword.length()>7;
         }
 
         public String getNewPassword() {
@@ -185,7 +184,9 @@ public class UserDataController {
             @RequestBody ResetPasswordRequest passwordRequest
     ){
         try{
-            if(passwordRequest.getOldPassword()==null || passwordRequest.getNewPassword()==null){
+            if(passwordRequest.getOldPassword()==null || passwordRequest.getNewPassword()==null
+                    || passwordRequest.getNewPassword().length()<7)
+            {
                 return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
             }
 
@@ -209,7 +210,7 @@ public class UserDataController {
             @RequestBody ResetPasswordRequest passwordRequest
     ){
         try{
-            if(!passwordRequest.isVailToCodeVerification()){
+            if(passwordRequest ==null || !passwordRequest.isVailToCodeVerification()){
                 return Result.ErrorResult(ErrorCode.BAD_REQUEST,0);
             }
             int userId = getUserId(request);
@@ -221,6 +222,21 @@ public class UserDataController {
         }catch (Exception e){
             logger.error("resetPasswordByCode fail reason is : {}",e.getMessage());
             return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
+        }
+    }
+
+
+    @PutMapping("/reset-description/{description}")
+    public String resetDescription(HttpServletRequest request ,@PathVariable("description") String description){
+        try{
+            if(description==null ||description.length() >=500){
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+            }
+            userService.resetDescription(getUserId(request),description);
+            return "ok";
+        } catch (Exception e){
+            logger.error(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

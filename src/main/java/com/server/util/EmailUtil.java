@@ -51,7 +51,6 @@ public class EmailUtil {
 
         try {
             this.mailSender.send(message);
-            logger.info("邮件发送成功 , {}", to);
         } catch (Exception e) {
             logger.error("发送邮件时发生异常", e);
             throw new RuntimeException("邮件发送失败", e);

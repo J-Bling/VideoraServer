@@ -1,7 +1,5 @@
 package com.server.controller.api.videos;
 
-import com.server.dto.request.video.VideoClipUploadRequest;
-import com.server.dto.request.video.VideoUploadRequest;
 import com.server.dto.response.Result;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;

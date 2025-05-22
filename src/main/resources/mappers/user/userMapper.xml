@@ -6,13 +6,13 @@
 
     <select id="findUserByPhone" resultType="com.server.entity.user.User">
         select id,nickname,phone,salt,password,gender,avatar_url,
-        description,locked,admin,gender
+        description,locked,admin,gender,created
         from user where phone=#{phone}
     </select>
 
     <select id="findUserByEmail" resultType="com.server.entity.user.User">
         select id,nickname,phone,salt,password,gender,avatar_url,
-        description,locked,admin,gender
+        description,locked,admin,gender,created
         from user where email=#{email}
     </select>
 

@@ -449,11 +449,11 @@ public class NotificationHandlerImpl implements NotificationHandler {
             onlineUsers.remove(userId);
             userActivity.put(userId, System.currentTimeMillis() + RedisKeyConstant.USER_ACTIVATE_FILE);
         }
-        session.close();
         logger.error("传输发生错误 userId:{}, sessionId:{}, 原因: {}",
                 session.getAttributes().get(WebConstant.WEBSOCKET_USER_ID),
                 session.getId(),
                 exception.getMessage());
+        session.close();
     }
 
     @Override

@@ -203,6 +203,10 @@ public class UserServiceImpl implements UserService {
         userDao.updateAvatar(userId,avatar_url);
     }
 
+    @Override
+    public void resetDescription(int userId, String description) {
+        userDao.updateDescription(userId,description);
+    }
 
 
     @Override
