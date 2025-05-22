@@ -34,4 +34,9 @@ public interface NotificationService {
      * 删除历史消息
      */
     void deleteNotifications(Integer userId, NotificationCode type);
+
+    /**
+     *这是专用于删除 notification type=4/5
+     */
+    void deleteNotifications(int userId,int targetId);
 }

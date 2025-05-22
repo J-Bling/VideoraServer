@@ -34,7 +34,7 @@ public class CommentController {
         try{
             Integer userId = this.getUserId(request);
             String commentId = commentService.createComment(commentRequest,userId);
-            if(!userId.equals(commentRequest.getTargetId())) {
+            if(commentRequest.getTargetId()!=null && !userId.equals(commentRequest.getTargetId())) {
                 notificationService.commentToCommentNotices(userId,commentRequest.getTargetId(),commentId);
             }
             return Result.Ok(commentId);

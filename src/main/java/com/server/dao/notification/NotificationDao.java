@@ -32,4 +32,7 @@ public interface NotificationDao {
 
     @Delete("delete from notification where user_id=#{userId} and type=#{type}")
     void deleteNotification(@Param("userId") Integer userId,@Param("type") int type);
+
+    @Delete("delete from notification where user_id=#{userId} and target_id=#{targetId} and type=4 or type=5")
+    void deleteNotificationForLetter(@Param("userId") int userId,@Param("targetId") int targetId);
 }

@@ -9,10 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -52,6 +49,18 @@ public class HistoryMessageController {
         }catch (Exception e){
             logger.error("getHistoryMessages fail reason is :{}",e.getMessage());
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"获取历史数据失败");
+        }
+    }
+
+    @DeleteMapping("/clean-notification/{targetId}")
+    public String clean(HttpServletRequest request ,@PathVariable("targetId") int targetId){
+        try{
+            int userId= Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
+            chatService.deleteMessage(userId,targetId);
+            return "ok";
+        }catch (Exception e){
+            logger.error(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

@@ -9,4 +9,5 @@ import java.util.List;
 public interface ChatService{
     List<Message> findHistoryMessage(Integer userId, Integer targetId, @Nullable Long lastCreated, int offset);
     List<UserResponse> findFriends(Integer userId);
+    void deleteMessage(int userId,int targetId);
 }

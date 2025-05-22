@@ -196,6 +196,11 @@ public class NotificationServiceImpl implements NotificationService {
         proxy.deleteMessage(userId,type);
     }
 
+    @Override
+    public void deleteNotifications(int userId, int targetId) {
+        proxy.deleteMessage(userId,targetId);
+    }
+
 
     @Override
     public void likeToVideoNotices(Integer myId, Integer authorId, Integer videoId) {

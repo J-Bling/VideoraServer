@@ -22,7 +22,6 @@ import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorato
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -55,11 +54,12 @@ public class ChatWebSocketHandlerImpl implements ChatWebSocketHandler {
                 :targetId+":"+userId;
     }
 
-    private List<String> serializationForMessages(List<Message> messages){
-        List<String> messageStr=new ArrayList<>();
+    private String[] serializationForMessages(List<Message> messages){
+        String[] messageStr=new String[messages.size()];
         try{
+            int i=0;
             for(Message message : messages){
-                messageStr.add(mapper.writeValueAsString(message));
+                messageStr[i++] = mapper.writeValueAsString(message);
             }
             return messageStr;
         }catch (JacksonException e){
@@ -116,12 +116,14 @@ public class ChatWebSocketHandlerImpl implements ChatWebSocketHandler {
 
         if(offset==0 && (messageObj==null || messageObj.isEmpty())){
             List<Message> messages= messageDao.findMessageForCache(room,0,MAX_HISTORY_MESSAGE_SIZE);
-            redis.rPushAll(key,
-                    messages!=null && !messages.isEmpty()
-                            ? serializationForMessages(messages)
-                            : Collections.singletonList(RedisKeyConstant.NULL)
-            );
-            HISTORY_MESSAGE_LIFT.put(key,System.currentTimeMillis()+HISTORY_MESSAGE_LIFT_TIME);
+            if(messages!=null && !messages.isEmpty()){
+                String[] values = serializationForMessages(messages);
+                if(values!=null && values.length>0){
+                    redis.rPushAll(key,values);
+                }
+            }else{
+                redis.rPush(key,RedisKeyConstant.NULL);
+            }
             return messages;
         }
 

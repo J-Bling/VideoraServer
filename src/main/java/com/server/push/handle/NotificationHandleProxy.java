@@ -30,5 +30,9 @@ public class NotificationHandleProxy {
     public void deleteMessage(Integer userId, NotificationCode type){
         notificationHandler.deleteNotification(userId,type);
     }
+
+    public void deleteMessage(int userId, int targetId){
+        notificationHandler.deleteNotification(userId,targetId);
+    }
 }
 

@@ -11,4 +11,8 @@ public interface NotificationHandler extends WebSocketHandler {
     List<Notification> findUnreadNotification(Integer userId);
     List<Notification> findHistoryNotification(Integer userId, NotificationCode type, int offset);
     void deleteNotification(Integer userId, NotificationCode type);
+    /**
+     *这是专用于删除 notification type=4/5
+     */
+    void deleteNotification(int userId,int targetId);
 }

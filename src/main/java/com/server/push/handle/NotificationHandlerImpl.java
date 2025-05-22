@@ -88,11 +88,10 @@ public class NotificationHandlerImpl implements NotificationHandler {
                 List<Notification> notificationList =
                         notificationDao.findUnreadMessagesByUserId(Integer.parseInt(userId));
                 String[] messages = new String[notificationList.size()];
-                ObjectMapper mapper = new ObjectMapper();
                 int i=0;
                 try{
                     for(Notification notification : notificationList){
-                        String msg = mapper.writeValueAsString(notification);
+                        String msg = MAPPER.writeValueAsString(notification);
                         if(msg!=null) messages[i++]=msg;
                     }
                     insertMessageOnUnreadCache(userId,messages);
@@ -190,10 +189,9 @@ public class NotificationHandlerImpl implements NotificationHandler {
     private void insertMessageOnUnreadCache(String userId,List<Notification> message){
         String[] messages=new String[message.size()];
         try {
-            ObjectMapper mapper = new ObjectMapper();
             int i=0;
             for (Notification notification : message) {
-                messages[i++]=mapper.writeValueAsString(notification);
+                messages[i++]= MAPPER.writeValueAsString(notification);
             }
 
             insertMessageOnUnreadCache(userId,messages);
@@ -212,16 +210,14 @@ public class NotificationHandlerImpl implements NotificationHandler {
     public void produceOneMessage(Notification notification){
         try{
             String userId = notification.getUser_id().toString();
-
-            ObjectMapper mapper = new ObjectMapper();
-            String data = mapper.writeValueAsString(notification);
+            String data = MAPPER.writeValueAsString(notification);
             insertMessageWaitQueue(data);//进入插入等待队列
 
             Long expire = userActivity.get(userId);
             if(expire!=null && expire>System.currentTimeMillis()) {
 
                 notification.setIs_read(true);
-                String message = mapper.writeValueAsString(notification);
+                String message = MAPPER.writeValueAsString(notification);
 
                 insertMessageOnHistoryCache(userId, notification.getType(), message);//进入历史缓存
                 insertMessageOnUnreadCache(notification.getUser_id().toString(), data);//进入未读缓存
@@ -230,7 +226,7 @@ public class NotificationHandlerImpl implements NotificationHandler {
             ConcurrentWebSocketSessionDecorator session = onlineUsers.get(userId);
             if(session!=null){
                 NotificationResponse response =new NotificationResponse(new String[]{data});
-                sendMessage(session,mapper.writeValueAsString(response));
+                sendMessage(session,MAPPER.writeValueAsString(response));
             }
 
         }catch (JsonProcessingException e){
@@ -254,7 +250,6 @@ public class NotificationHandlerImpl implements NotificationHandler {
         Map<Integer,Set<Notification>> messages = categoryNotificationByUser(notificationList);
 
         try{
-            ObjectMapper mapper =new ObjectMapper();
             for(Map.Entry<Integer,Set<Notification>> message : messages.entrySet()){
                 String userId=message.getKey().toString();
                 Set<Notification> notifications = message.getValue();
@@ -266,7 +261,7 @@ public class NotificationHandlerImpl implements NotificationHandler {
                 int i=0;
 
                 for(Notification notification: notifications){
-                    String msg= mapper.writeValueAsString(notification);
+                    String msg= MAPPER.writeValueAsString(notification);
                     data[i++]=msg;
                     notificationJsonStr.add(msg);
                     if(isExpire){
@@ -281,10 +276,10 @@ public class NotificationHandlerImpl implements NotificationHandler {
 
                 ConcurrentWebSocketSessionDecorator session = onlineUsers.get(userId);
                 NotificationResponse response =new NotificationResponse(data);
-                sendMessage(session,mapper.writeValueAsString(response));
+                sendMessage(session,MAPPER.writeValueAsString(response));
             }
 
-            redis.rPushAll(RedisKeyConstant.INSERT_MESSAGE_LIST_KEY,notificationJsonStr);
+            redis.rPushAll(RedisKeyConstant.INSERT_MESSAGE_LIST_KEY,notificationJsonStr.toArray(new String[0]));
 
         }catch (JsonProcessingException e){
             logger.error("batchProduceMessage 方法 序列化发生错误 : {}",e.getMessage(),e);
@@ -371,6 +366,15 @@ public class NotificationHandlerImpl implements NotificationHandler {
         String key = HISTORY_MESSAGE_LIST_KEY(userId.toString(),type.getCode().toString());
         redis.delete(key);
         notificationDao.deleteNotification(userId,type.getCode());
+    }
+
+    @Override
+    public void deleteNotification(int userId, int targetId) {
+        String key1 = HISTORY_MESSAGE_LIST_KEY(""+userId,NotificationCode.FOLLOWED_FOR.getCode().toString());
+        String key2 = HISTORY_MESSAGE_LIST_KEY(""+userId,NotificationCode.PRIVATE_LETTER_FOR.getCode().toString());
+        redis.delete(key1);
+        redis.delete(key2);
+        notificationDao.deleteNotificationForLetter(userId,targetId);
     }
 
 

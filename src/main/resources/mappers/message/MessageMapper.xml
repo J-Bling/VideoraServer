@@ -5,7 +5,7 @@
 <mapper namespace="com.server.dao.message.MessageDao">
 
     <select id="findMessageForCache" resultType="com.server.message.entity.Message">
-        select * from message where room=#{root} order by created desc limit #{offset},#{limit}
+        select * from message where room=#{room} order by created desc limit #{offset},#{limit}
     </select>
 
     <select id="findMessageByLastCreated" resultType="com.server.message.entity.Message">
