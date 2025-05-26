@@ -10,6 +10,7 @@ import com.server.message.entity.Message;
 import com.server.message.service.ChatWebSocketHandler;
 import com.server.push.service.NotificationService;
 import com.server.util.redis.RedisUtil;
+import org.bytedeco.opencv.opencv_tracking.IDescriptorDistance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +38,6 @@ public class ChatWebSocketHandlerImpl implements ChatWebSocketHandler {
     private static final int BUFFER_SIZE_LIMIT=1024*1024;
     private static final int LIMIT_MESSAGES_SIZE=30;
     private static final int MAX_HISTORY_MESSAGE_SIZE=90;
-    private static final long HISTORY_MESSAGE_LIFT_TIME=RedisKeyConstant.RANK_CACHE_LIFE_CYCLE;
     private final Logger logger = LoggerFactory.getLogger(ChatWebSocketHandlerImpl.class);
 
     private static final ConcurrentHashMap<Integer,ConcurrentWebSocketSessionDecorator> onlineUsers=new ConcurrentHashMap<>();
@@ -76,6 +76,7 @@ public class ChatWebSocketHandlerImpl implements ChatWebSocketHandler {
      */
     private void setHistoryMessageOnCache(Integer userId,Integer targetId,String message){
         String key =HISTORY_MESSAGES_LIST_KEY(userId,targetId);
+        HISTORY_MESSAGE_LIFT.putIfAbsent(key,System.currentTimeMillis());
         Long len= redis.lLen(key);
         if(len==null || len < MAX_HISTORY_MESSAGE_SIZE) redis.rPush(key,message);
         else {
@@ -109,6 +110,7 @@ public class ChatWebSocketHandlerImpl implements ChatWebSocketHandler {
      */
     private List<Message> findHistoryMessageOnCache(Integer userId, Integer targetId,int offset){
         String key = HISTORY_MESSAGES_LIST_KEY(userId,targetId);
+        HISTORY_MESSAGE_LIFT.putIfAbsent(key,System.currentTimeMillis());
         String room=forRoom(userId,targetId);
         List<Object> messageObj= redis.lRange(key,offset,offset+ ChatWebSocketHandlerImpl.LIMIT_MESSAGES_SIZE);
         if(messageObj!=null && messageObj.size()==1 && RedisKeyConstant.NULL.equals(messageObj.get(0).toString()))
@@ -157,12 +159,26 @@ public class ChatWebSocketHandlerImpl implements ChatWebSocketHandler {
 
     @Override
     public void produceMessage(Message message) {
+        try {
+            String msg = mapper.writeValueAsString(message);
+            redis.rPush(RedisKeyConstant.INSERT_MSG_FOR_MESSAGE_LIST_KEY,msg);
+            setHistoryMessageOnCache(message.getSender_id(), message.getTarget_id(),msg);
+            Integer targetId = message.getTarget_id();
+            ConcurrentWebSocketSessionDecorator decorator = onlineUsers.get(targetId);
+            if(decorator!=null){
+                sendMessage(decorator,msg);
+            }
 
+        }catch (Exception e){
+            logger.error("produceMessage fail : {}",e.getMessage());
+        }
     }
 
     @Override
     public void produceMessage(List<Message> messages) {
-
+        for(Message message : messages){
+            this.produceMessage(message);
+        }
     }
 
     private void sendMessage(ConcurrentWebSocketSessionDecorator decorator,String data) throws IOException {
@@ -234,6 +250,7 @@ public class ChatWebSocketHandlerImpl implements ChatWebSocketHandler {
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
         Integer userId = Integer.parseInt(session.getAttributes().get(WebConstant.WEBSOCKET_USER_ID).toString());
+        onlineUsers.remove(userId);
         logger.error("user :{},transport ing message have fail ,reason is {}",userId,exception.getMessage());
         session.close();
     }

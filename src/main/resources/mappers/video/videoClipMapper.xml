@@ -11,4 +11,11 @@
     <select id="findAllClipsByVideoIdWithQuality" resultType="com.server.dto.response.video.VideoClipsResponse">
         select video_index,duration,url from video_clip where video_id=#{videoId} and quality =#{quality}
     </select>
+
+
+
+    <insert id="insertVideoClipCopy" parameterType="com.server.entity.video.VideoClip">
+        insert into video_clip_copy (video_id,video_index,duration,url,quality,width,height,format) values
+        (#{video_id}, #{video_index}, #{duration}, #{url}, #{quality}, #{width}, #{height}, #{format})
+    </insert>
 </mapper>

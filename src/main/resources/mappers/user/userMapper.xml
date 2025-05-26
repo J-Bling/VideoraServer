@@ -47,9 +47,15 @@
         WHERE ur.user_id = #{userId} AND ur.relation_type = 1
     </select>
 
-    <select id="findFollower" resultType="com.server.dto.response.user.UserResponse">
-        select u.id ,u.nickname , u.gender, u.avatar_url , u.description
+    <select id="findFollower" resultType="java.lang.Integer">
+        select u.id ,u.nickname , u.gender, u.avatar_url , u.description,u.gender
         from user u join user_relation ur on u.id = ur.target_id
-        where ur.user_id = #{userId} and u.relation_type = 1
+        where ur.user_id = #{userId} and ur.relation_type = 1
+    </select>
+
+    <select id="findFans" resultType="java.lang.Integer">
+        select u.id
+        from user u join user_relation ur on ur.target_id = u.id
+        where u.id = #{userId} limit #{offset},#{limit}
     </select>
 </mapper>

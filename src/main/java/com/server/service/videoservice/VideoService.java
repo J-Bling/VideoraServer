@@ -16,4 +16,5 @@ public interface VideoService {
     List<VideoClipsResponse> getVideoClipUrl(Integer videoId,int offset,boolean quality);
     VideoDataResponse getVideoResponseData(Integer videoId,@Nullable Integer userId) throws InterruptedException;
     List<VideoDataResponse> getMaxHotVideoData();
+    void deleteVideoDataById(int videoId);
 }

@@ -12,4 +12,5 @@ public interface VideoEditService {
     Integer saveVideoClip(VideoClip videoClip,InputStream videoFile,String OriginFilename) throws IOException;
     Integer saveVideoClip(VideoClip videoClip, MultipartFile videoFile) throws IOException;
     void deleteVideoDataForUploadFail(Integer videoId,Integer authorId);
+    void deleteVideo(int videoId,int authorId);
 }

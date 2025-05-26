@@ -152,4 +152,9 @@ public class VideoFractionStatsServiceImpl implements VideoFractionStatsService 
     public void increaseFraction(String field, double count) {
         redis.zIncrBy(VIDEO_RANKING_KEY,field,count);
     }
+
+    @Override
+    public void deleteVideoIdRank(int videoId) {
+        redis.zRem(VIDEO_RANKING_KEY,""+videoId);
+    }
 }

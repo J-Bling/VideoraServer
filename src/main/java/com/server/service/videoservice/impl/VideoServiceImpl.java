@@ -292,4 +292,10 @@ public class VideoServiceImpl implements VideoService {
             return null;
         }
     }
+
+    @Override
+    public void deleteVideoDataById(int videoId) {
+        String key = VIDEO_DATA_KEY(videoId);
+        redis.set(key,RedisKeyConstant.NULL);
+    }
 }

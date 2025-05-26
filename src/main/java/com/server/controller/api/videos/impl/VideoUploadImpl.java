@@ -17,10 +17,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
@@ -102,6 +104,19 @@ public class VideoUploadImpl implements VideoUploadController {
         }catch (Exception e){
             logger.error("server fail reason is {}",e.getMessage(),e);
             return Result.ErrorResult(ErrorCode.INTERNAL_SERVER_ERROR,0);
+        }
+    }
+
+    @Override
+    @DeleteMapping("/delete/{videoId}")
+    public String deleteVideo(HttpServletRequest request,@PathVariable("videoId") int videoId) {
+        try{
+            int userId = Integer.parseInt(request.getAttribute(WebConstant.REQUEST_ATTRIBUTE_AUTH_ID).toString());
+            videoEditService.deleteVideo(videoId,userId);
+            return "ok";
+        }catch (Exception e){
+            logger.error(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 

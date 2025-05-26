@@ -9,4 +9,5 @@ import javax.servlet.http.HttpServletRequest;
 public interface VideoUploadController {
     ResponseEntity<Result> updateInit(HttpServletRequest request, String uploadRequest, MultipartFile file);
     ResponseEntity<Result> uploadChunk(HttpServletRequest request, String clipUploadRequest,MultipartFile file);
+    String deleteVideo(HttpServletRequest request,int videoId);
 }

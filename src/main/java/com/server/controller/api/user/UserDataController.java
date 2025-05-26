@@ -348,4 +348,14 @@ public class UserDataController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,"获取关注失败");
         }
     }
+
+    @GetMapping("/fans/{offset}")
+    public List<UserResponse> getFans(HttpServletRequest request ,@PathVariable("offset")int offset ){
+        try{
+            return userService.findFans(getUserId(request),offset);
+        }catch (Exception e){
+            logger.error(e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

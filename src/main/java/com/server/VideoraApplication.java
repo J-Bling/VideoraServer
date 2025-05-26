@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -16,6 +17,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 @SpringBootApplication
 @EnableAsync
 @EnableScheduling
+@EnableAspectJAutoProxy
 public class VideoraApplication {
     private final Logger logger = LoggerFactory.getLogger(VideoraApplication.class);
 
@@ -39,7 +41,7 @@ public class VideoraApplication {
         scheduler.setThreadNamePrefix("scheduled-task-");
         scheduler.setAwaitTerminationSeconds(60);
         scheduler.setWaitForTasksToCompleteOnShutdown(true);
-        scheduler.setErrorHandler(t -> {   // 任务异常处理
+        scheduler.setErrorHandler(t -> {
             logger.error("scheduled-task exception : {}",t.getMessage());
         });
         return scheduler;

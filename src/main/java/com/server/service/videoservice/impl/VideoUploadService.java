@@ -24,11 +24,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import com.server.enums.PresetProfile;
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 
 @Service
 public class VideoUploadService implements VideoEditService {
@@ -184,6 +185,34 @@ public class VideoUploadService implements VideoEditService {
        }
     }
 
+    @Override
+    public void deleteVideo(int videoId, int authorId) {
+        Video video = videoDao.findVideoById(videoId);
+        List<VideoClip> clips = videoClipDao.findAllByVideoId(videoId);
+        videoFractionStatsService.deleteVideoIdRank(videoId);
+        videoService.deleteVideoDataById(videoId);
+        userStatsService.CountVideo(authorId,-1);
+
+        String imageUrl = STATIC_FILE_URL + video.getCover_url();
+        try{
+            boolean status = new File(imageUrl).delete();
+            logger.info("删除封面 {} {}",video.getTitle(), status ? "成功" : "失败");
+        }catch (Exception e){
+            logger.error("删除视频封面失败 title :{} , url : {} , 原因: {}",video.getTitle(),video.getCover_url(),e.getMessage());
+        }
+
+        for(VideoClip clip : clips){
+            videoClipDao.deleteClipById(clip.getId());
+            String path = STATIC_FILE_URL + clip.getUrl();
+            try {
+                boolean status = new File(path).delete();
+                logger.info("删除视频 {} , 分片{} ,{}", video.getTitle(), clip.getVideo_index(), status ? "成功" : "失败");
+            } catch (Exception e) {
+                logger.error("删除视频分片失败 url : {} ,{}",clip.getUrl(),e.getMessage());
+            }
+        }
+    }
+
     @Scheduled(fixedRate = 75*1000)
     public void CompressVideoFromQueue() throws InterruptedException {
         if(COMPRESS_QUEUE.isEmpty()) return;
@@ -230,4 +259,36 @@ public class VideoUploadService implements VideoEditService {
             }
         }
     }
+
+
+
+    @PostConstruct
+    public void init(){
+        List<VideoClip> clips = videoClipDao.findAllClipCopy();
+        if (clips==null || clips.isEmpty()) return;
+
+        videoClipDao.deleteAllClipCopy();
+        for(VideoClip clip : clips){
+            COMPRESS_QUEUE.offer(clip);
+        }
+
+        clips=null;
+    }
+
+    @PreDestroy
+    public void destroy(){
+        if(COMPRESS_QUEUE.isEmpty()) return;
+
+        VideoClip clip = COMPRESS_QUEUE.poll();
+
+        try {
+            while (clip != null) {
+                videoClipDao.insertVideoClipCopy(clip);
+            }
+        }catch (Exception e){
+            logger.error("insert video_clip_copy fail : {}",e.getMessage());
+        }
+    }
 }
+
+

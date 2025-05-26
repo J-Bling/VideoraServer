@@ -61,5 +61,6 @@ public interface UserDao {
     @Update("update user set description = #{description} where id= #{userId}")
     void updateDescription(@Param("userId") int userId , @Param("description") String description);
 
-    List<UserResponse> findFollower(@Param("userId") int userId);
+    List<Integer> findFollower(@Param("userId") int userId);
+    List<Integer> findFans(@Param("userId") int userId,@Param("offset") int offset,@Param("limit") int limit);
 }

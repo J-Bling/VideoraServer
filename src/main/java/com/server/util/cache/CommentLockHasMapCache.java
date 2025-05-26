@@ -3,7 +3,9 @@ package com.server.util.cache;
 import com.server.entity.cache.comment.CommentLockResponseDto;
 import com.server.dto.response.comment.CommentResponse;
 
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CommentLockHasMapCache {
@@ -30,15 +32,14 @@ public class CommentLockHasMapCache {
     public void cleanCache(){
         if(!Cache.isEmpty()) {
             long time = System.currentTimeMillis() / 1000;
-            Cache.forEach(1, (key, value) -> {
-                if (value != null) {
-                    if (time - value.getCacheTime() >= RETAIN_TIME) {
-                        Cache.remove(key);
-                    }
-                } else {
-                    Cache.remove(key);
+            Iterator<Map.Entry<Integer, CommentLockResponseDto>> iterator = Cache.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Integer, CommentLockResponseDto> entry = iterator.next();
+                CommentLockResponseDto value = entry.getValue();
+                if (value == null || time - value.getCacheTime() >= RETAIN_TIME) {
+                    iterator.remove();
                 }
-            });
+            }
         }
     }
 }

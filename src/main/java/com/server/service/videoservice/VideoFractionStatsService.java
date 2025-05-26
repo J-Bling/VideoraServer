@@ -11,4 +11,5 @@ public interface VideoFractionStatsService {
     List<String> getVideoId(String category,long start,long end);
     List<String> getVideoId(long start, long end);
     void increaseFraction(String field,double count);
+    void deleteVideoIdRank(int videoId);
 }

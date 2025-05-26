@@ -46,6 +46,7 @@ public class UserServiceImpl implements UserService {
     @Autowired private VideoStatsService videoStats;
 
     private final int LIMIT_VIDEO_SIZE=20;
+    private final int LIMIT_FANS = 15;
     private static final String Description="这个人很懒什么都没有写";
     private static final String CHINA_PHONE_REGEX = "^1[3-9]\\d{9}$";
     private static final Pattern CHINA_PHONE_PATTERN = Pattern.compile(CHINA_PHONE_REGEX);
@@ -244,8 +245,32 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserResponse> findAllFowllower(int userId) {
-        return userDao.findFriends(userId);
+    public List<UserResponse> findAllFowllower(int userId) throws InterruptedException {
+        List<Integer> userIds = userDao.findFollower(userId);
+        if(userIds==null || userIds.isEmpty()) return null;
+
+        List<UserResponse> responses = new ArrayList<>();
+        for(Integer id : userIds){
+            UserResponse response = userDataService.getUserDataWithStats(id);
+            responses.add(response);
+        }
+
+        return responses;
+    }
+
+    @Override
+    public List<UserResponse> findFans(int userId, int offset) throws InterruptedException {
+        List<Integer> userIds = userDao.findFans(userId,offset,LIMIT_FANS);
+        if(userIds==null || userIds.isEmpty()) return null;
+
+        List<UserResponse> responses = new ArrayList<>();
+        for(Integer id : userIds){
+            UserResponse response = userDataService.getUserDataWithStats(id);
+            responses.add(response);
+        }
+
+
+        return responses;
     }
 
 

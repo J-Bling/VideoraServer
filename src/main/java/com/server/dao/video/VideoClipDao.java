@@ -17,4 +17,12 @@ public interface VideoClipDao {
 
     @Delete("delete from video_clip where video_id =#{id}")
     void deleteClipById(@Param("id") Long id);
+
+    void insertVideoClipCopy(VideoClip videoClip);
+
+    @Select("select * from video_clip_copy")
+    List<VideoClip> findAllClipCopy();
+
+    @Delete("delete from video_clip_copy")
+    void deleteAllClipCopy();
 }

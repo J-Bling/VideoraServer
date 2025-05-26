@@ -33,5 +33,6 @@ public interface UserService {
     List<VideoContributeResponse> getContributeVideos(int userId,int offset) throws InterruptedException;
     List<VideoDataResponse> getCollection(int userId,int offset);
 
-    List<UserResponse> findAllFowllower(int userId);
+    List<UserResponse> findAllFowllower(int userId) throws InterruptedException;
+    List<UserResponse> findFans(int userId,int offset) throws InterruptedException;
 }

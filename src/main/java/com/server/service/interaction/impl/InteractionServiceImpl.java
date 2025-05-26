@@ -125,22 +125,22 @@ public class InteractionServiceImpl implements InteractionService {
             if(relationType==null) throw new ApiException(ErrorCode.BAD_REQUEST);
             pushUserRelationCache(userId,targetId,NULL);
             if(relationType){
-                userStatsService.CountFollowing(userId,-1);
-                userStatsService.CountFollower(targetId,-1);
+                userStatsService.CountFollowing(targetId,-1);
+                userStatsService.CountFollower(userId,-1);
             }
 
         } else if (userRelation.getRelation_type()) {
             if(relationType!=null && relationType) throw new ApiException(ErrorCode.BAD_REQUEST);
             pushUserRelationCache(userId,targetId,IS);
-            userStatsService.CountFollowing(userId,1);
-            userStatsService.CountFollower(targetId,1);
+            userStatsService.CountFollowing(targetId,1);
+            userStatsService.CountFollower(userId,1);
 
         }else {
             if(relationType!=null){
                 if(!relationType) throw new ApiException(ErrorCode.BAD_REQUEST);
                 else {
-                    userStatsService.CountFollowing(userId,-1);
-                    userStatsService.CountFollower(targetId,-1);
+                    userStatsService.CountFollowing(targetId,-1);
+                    userStatsService.CountFollower(userId,-1);
                 }
             }
 

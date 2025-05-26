@@ -6,7 +6,6 @@ import com.server.dto.response.user.UserResponse;
 import com.server.message.entity.Message;
 import com.server.message.service.ChatService;
 import com.server.message.service.ChatWebSocketHandler;
-import com.server.push.enums.NotificationCode;
 import com.server.push.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -45,5 +44,10 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public void deleteMessage(int userId,int targetId) {
         notificationService.deleteNotifications(userId,targetId);
+    }
+
+    @Override
+    public void produceMessage(Message message) {
+        handler.produceMessage(message);
     }
 }
