@@ -81,3 +81,6 @@ java -jar target/VideoraServer-1.0.jar
 - 前端体验 : http://159.75.68.114:80
 
 ````
+![demo](./static/demo1.png)
+![demo](./static/demo2.png)
+![demo](./static/demo3.png)
