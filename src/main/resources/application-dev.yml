@@ -45,6 +45,8 @@ springdoc:
   api-docs:
     path: /api-docs.json
 
+
+
 # /home/ubuntu/var/www
 STATIC_FILE_URL : /opt/homebrew/var/www
 MEDIA_PREDIX: /media/hd/
